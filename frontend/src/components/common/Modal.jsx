@@ -2,7 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import Button from './Button';
 
-const Modal = ({ isOpen, onClose, title, children }) => {
+const Modal = ({ isOpen, onClose, title, maxWidth = '500px', children, style = {} }) => {
   if (!isOpen) return null;
 
   return (
@@ -12,22 +12,25 @@ const Modal = ({ isOpen, onClose, title, children }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backdropFilter: 'blur(2px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 50,
+      zIndex: 1000,
       padding: 'var(--spacing-2)'
     }}>
       <div style={{
         backgroundColor: 'var(--color-bg-card)',
         borderRadius: 'var(--radius-lg)',
         width: '100%',
-        maxWidth: '500px',
-        boxShadow: 'var(--shadow-md)',
+        maxWidth: maxWidth,
+        boxShadow: 'var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.2))',
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: '90vh'
+        maxHeight: '90vh',
+        border: '1px solid var(--color-border)',
+        ...style
       }}>
         <div style={{
           display: 'flex',

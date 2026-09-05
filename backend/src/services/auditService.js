@@ -8,7 +8,7 @@ const logger = require('../utils/logger');
  */
 class AuditService {
   formatCurrency(val) {
-    return 'INR ' + (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '$' + (parseFloat(val) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   /**

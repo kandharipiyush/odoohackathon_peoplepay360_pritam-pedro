@@ -184,19 +184,19 @@ const Reports = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--spacing-4)' }}>
             <ReportCard 
               title="Payroll Summary" description="Overview of gross and net payroll across all departments." updated="Today, 09:00 AM" role="Finance / Admin" icon={FileText} 
-              onAction={(type) => handleAction(type, 'Payroll Summary', '/reports/payroll')} 
+              onAction={(type) => handleAction(type, 'Payroll Summary', '/reports/payroll?tab=summary')} 
             />
             <ReportCard 
               title="Department Payroll" description="Cost breakdown and comparison by internal departments." updated="Yesterday, 18:30 PM" role="HR Manager" icon={TrendingUp} 
-              onAction={(type) => handleAction(type, 'Department Payroll', '/reports/payroll')} 
+              onAction={(type) => handleAction(type, 'Department Payroll', '/reports/payroll?tab=department')} 
             />
             <ReportCard 
               title="Salary Breakdown" description="Detailed line items for basic salary, HRA, bonuses, and tax deductions." updated="Live Data" role="HR & Payroll" icon={FileText} 
-              onAction={(type) => handleAction(type, 'Salary Breakdown', '/reports/payroll')} 
+              onAction={(type) => handleAction(type, 'Salary Breakdown', '/reports/payroll?tab=breakdown')} 
             />
             <ReportCard 
               title="Payroll Cost Trend" description="Historical analysis of payroll growth and projections." updated="Current Month" role="Finance / Admin" icon={TrendingUp} 
-              onAction={(type) => handleAction(type, 'Payroll Cost Trend', '/reports/payroll')} 
+              onAction={(type) => handleAction(type, 'Payroll Cost Trend', '/reports/payroll?tab=trends')} 
             />
           </div>
         );
@@ -209,7 +209,7 @@ const Reports = () => {
             />
             <ReportCard 
               title="Overtime Report" description="Analysis of approved and unapproved overtime hours." updated="Yesterday" role="HR Payroll Manager" icon={Clock} 
-              onAction={(type) => handleAction(type, 'Overtime Report', '/attendance')}
+              onAction={(type) => handleAction(type, 'Overtime Report', '/attendance')} 
             />
             <ReportCard 
               title="Attendance Exceptions" description="List of missed check-ins and late arrivals." updated="Today, 08:30 AM" role="HR Manager" icon={AlertTriangle} 
@@ -235,11 +235,11 @@ const Reports = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--spacing-4)' }}>
             <ReportCard 
               title="Payroll Risk Report" description="Aggregated risk scores and high-risk employee profiles." updated="Real-time" role="Auditor / Admin" icon={ShieldAlert} 
-              onAction={(type) => handleAction(type, 'Payroll Risk', '/reports/payroll')} 
+              onAction={(type) => handleAction(type, 'Payroll Risk', '/reports/payroll?tab=risk')} 
             />
             <ReportCard 
               title="Payroll Anomaly Report" description="Detailed ledger of flagged anomalies like salary spikes." updated="Real-time" role="Auditor / Admin" icon={AlertTriangle} 
-              onAction={(type) => handleAction(type, 'Payroll Anomaly', '/reports/payroll')} 
+              onAction={(type) => handleAction(type, 'Payroll Anomaly', '/reports/payroll?tab=anomalies')} 
             />
             <ReportCard 
               title="Attendance Payroll Impact" description="Financial cost estimates of unresolved attendance gaps." updated="Real-time" role="Finance" icon={TrendingUp} 
@@ -247,7 +247,7 @@ const Reports = () => {
             />
             <ReportCard 
               title="Explainable Audit Ledger" description="Historical logs of automated compliance checks on payslips." updated="Daily" role="Auditor / Admin" icon={ShieldAlert} 
-              onAction={(type) => handleAction(type, 'Audit Ledger', '/reports/payroll')}
+              onAction={(type) => handleAction(type, 'Audit Ledger', '/reports/payroll?tab=audit')} 
             />
           </div>
         );

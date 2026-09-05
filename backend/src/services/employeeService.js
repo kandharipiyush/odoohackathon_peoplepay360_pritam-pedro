@@ -277,13 +277,23 @@ class EmployeeService {
       }
     }
 
-    if (fieldsToUpdate.length === 0) {
-      return this.getEmployeeById(id);
+    if (fieldsToUpdate.length > 0) {
+      params.push(id);
+      const sql = `UPDATE employees SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+      await pool.query(sql, params);
     }
 
-    params.push(id);
-    const sql = `UPDATE employees SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
-    await pool.query(sql, params);
+    try {
+      if (updateData.email) {
+        await pool.query('UPDATE users SET email = ? WHERE employee_id = ?', [updateData.email, id]);
+      }
+      if (updateData.status) {
+        const isActive = updateData.status === 'Active';
+        await pool.query('UPDATE users SET is_active = ? WHERE employee_id = ?', [isActive, id]);
+      }
+    } catch {
+      // User sync optional
+    }
 
     return this.getEmployeeById(id);
   }

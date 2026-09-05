@@ -67,19 +67,32 @@ const EmployeeForm = () => {
       employeeApi.getEmployee(id).then(res => {
         if (res.data) {
           const emp = res.data;
-          const isStandard = STANDARD_POSITIONS.includes(emp.position);
-          setFormData(prev => ({
-            ...prev,
-            ...emp,
-            position: isStandard ? emp.position : 'Other',
-            customPosition: isStandard ? '' : emp.position
-          }));
+          const pos = emp.position || emp.job_position || 'Software Developer';
+          const isStandard = STANDARD_POSITIONS.includes(pos);
+          const joinDate = emp.joiningDate || emp.joining_date || emp.created_at || new Date().toISOString();
+          const cleanDate = typeof joinDate === 'string' ? joinDate.split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0];
+
+          setFormData({
+            firstName: emp.firstName || emp.first_name || '',
+            lastName: emp.lastName || emp.last_name || '',
+            email: emp.email || '',
+            phone: emp.phone || '',
+            department: emp.department || 'Engineering',
+            position: isStandard ? pos : 'Other',
+            customPosition: isStandard ? '' : pos,
+            employeeId: emp.employeeId || emp.employee_id || `EMP-${String(emp.id).padStart(3, '0')}`,
+            joiningDate: cleanDate,
+            status: emp.status || 'Active',
+            role: emp.role || 'Employee',
+            password: '',
+            wage: emp.wage || 75000,
+          });
         } else {
           setError('Employee not found');
         }
         setLoading(false);
-      }).catch(() => {
-        setError('Failed to load employee data');
+      }).catch((err) => {
+        setError(err.response?.data?.error || err.message || 'Failed to load employee data');
         setLoading(false);
       });
     }
@@ -95,19 +108,45 @@ const EmployeeForm = () => {
     setError('');
     setSuccess('');
 
-    if (!formData.firstName || !formData.lastName || !formData.email) {
-      setError('First name, last name, and email are required.');
+    const trimmedFirstName = (formData.firstName || '').trim();
+    const trimmedLastName = (formData.lastName || '').trim();
+    const trimmedEmail = (formData.email || '').trim();
+
+    if (!trimmedFirstName) {
+      setError('First name is required.');
+      return;
+    }
+    if (!trimmedLastName) {
+      setError('Last name is required.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setError('Email is required.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError('Please enter a valid email format (e.g. user@example.com).');
       return;
     }
 
     const finalPosition = formData.position === 'Other' 
-      ? formData.customPosition || 'Staff' 
+      ? (formData.customPosition || '').trim() || 'Staff' 
       : formData.position;
 
     const payload = {
-      ...formData,
-      position: finalPosition,
+      first_name: trimmedFirstName,
+      last_name: trimmedLastName,
+      email: trimmedEmail,
+      phone: (formData.phone || '').trim(),
+      department: formData.department || 'Engineering',
       job_position: finalPosition,
+      position: finalPosition,
+      status: formData.status || 'Active',
+      role: formData.role || 'Employee',
+      password: formData.password || undefined,
+      wage: parseFloat(formData.wage) || 75000,
     };
 
     setSaving(true);
@@ -115,13 +154,15 @@ const EmployeeForm = () => {
       if (isEdit) {
         await employeeApi.updateEmployee(id, payload);
         setSuccess('Employee record updated successfully.');
+        setTimeout(() => navigate('/employees'), 1200);
       } else {
-        const res = await employeeApi.createEmployee(payload);
+        await employeeApi.createEmployee(payload);
         setSuccess('Employee created successfully.');
-        setTimeout(() => navigate(`/employees/${res.data?.id || ''}`), 1500);
+        setTimeout(() => navigate('/employees'), 1200);
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to save employee.');
+      const serverErr = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to save employee.';
+      setError(serverErr);
     } finally {
       setSaving(false);
     }
@@ -141,27 +182,35 @@ const EmployeeForm = () => {
         <Button variant="secondary" onClick={() => navigate(-1)}>Back</Button>
       </div>
 
-      {error && <div style={{ color: 'var(--color-status-error)', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '6px', marginBottom: '16px' }}>{error}</div>}
-      {success && <div style={{ color: 'var(--color-status-success)', padding: '12px', backgroundColor: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '6px', marginBottom: '16px' }}>{success}</div>}
+      {error && (
+        <div style={{ color: 'var(--color-status-error)', padding: '12px 16px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
+          {error}
+        </div>
+      )}
+      {success && (
+        <div style={{ color: '#16A34A', padding: '12px 16px', backgroundColor: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
+          {success}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <Card title="Personal Information">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
             <div className="input-group">
               <label>First Name *</label>
-              <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
+              <input type="text" name="firstName" value={formData.firstName || ''} onChange={handleChange} placeholder="First name" required />
             </div>
             <div className="input-group">
               <label>Last Name *</label>
-              <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
+              <input type="text" name="lastName" value={formData.lastName || ''} onChange={handleChange} placeholder="Last name" required />
             </div>
             <div className="input-group">
               <label>Email *</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+              <input type="email" name="email" value={formData.email || ''} onChange={handleChange} placeholder="e.g. employee@company.com" required />
             </div>
             <div className="input-group">
               <label>Phone</label>
-              <input type="text" name="phone" value={formData.phone} onChange={handleChange} />
+              <input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} placeholder="Phone number" />
             </div>
           </div>
         </Card>
@@ -170,11 +219,11 @@ const EmployeeForm = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
             <div className="input-group">
               <label>Employee ID (Optional auto-gen)</label>
-              <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP-015" />
+              <input type="text" name="employeeId" value={formData.employeeId || ''} onChange={handleChange} placeholder="e.g. EMP-015" />
             </div>
             <div className="input-group">
               <label>Department</label>
-              <select name="department" value={formData.department} onChange={handleChange}>
+              <select name="department" value={formData.department || 'Engineering'} onChange={handleChange}>
                 {DEPARTMENTS.map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -182,7 +231,7 @@ const EmployeeForm = () => {
             </div>
             <div className="input-group">
               <label>Job Position</label>
-              <select name="position" value={formData.position} onChange={handleChange}>
+              <select name="position" value={formData.position || 'Software Developer'} onChange={handleChange}>
                 {STANDARD_POSITIONS.map(pos => (
                   <option key={pos} value={pos}>{pos}</option>
                 ))}
@@ -195,7 +244,7 @@ const EmployeeForm = () => {
                 <input 
                   type="text" 
                   name="customPosition" 
-                  value={formData.customPosition} 
+                  value={formData.customPosition || ''} 
                   onChange={handleChange} 
                   placeholder="e.g. Cloud Security Architect" 
                   required 
@@ -204,11 +253,11 @@ const EmployeeForm = () => {
             )}
             <div className="input-group">
               <label>Joining Date</label>
-              <input type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
+              <input type="date" name="joiningDate" value={formData.joiningDate || ''} onChange={handleChange} />
             </div>
             <div className="input-group">
               <label>Status</label>
-              <select name="status" value={formData.status} onChange={handleChange}>
+              <select name="status" value={formData.status || 'Active'} onChange={handleChange}>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="On Leave">On Leave</option>
@@ -217,7 +266,7 @@ const EmployeeForm = () => {
             {!isEdit && (
               <div className="input-group">
                 <label>Starting Annual Wage ($)</label>
-                <input type="number" name="wage" value={formData.wage} onChange={handleChange} />
+                <input type="number" name="wage" value={formData.wage || 75000} onChange={handleChange} />
               </div>
             )}
           </div>
@@ -233,7 +282,7 @@ const EmployeeForm = () => {
                   System Role Authorization
                 </label>
                 {isAdmin ? (
-                  <select name="role" value={formData.role} onChange={handleChange}>
+                  <select name="role" value={formData.role || 'Employee'} onChange={handleChange}>
                     <option value="Employee">Standard Employee</option>
                     <option value="HR_Manager">HR Manager</option>
                     <option value="HR_Payroll_Manager">HR Payroll Manager</option>
@@ -260,7 +309,7 @@ const EmployeeForm = () => {
                   type="password" 
                   name="password" 
                   placeholder="Set initial password" 
-                  value={formData.password} 
+                  value={formData.password || ''} 
                   onChange={handleChange} 
                 />
                 <small style={{ color: 'var(--color-text-secondary)', fontSize: '11px', display: 'block', marginTop: '4px' }}>

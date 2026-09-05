@@ -73,11 +73,11 @@ const Payroll = () => {
     setLoadingRisk(true);
     try {
       const [riskRes, anomalyRes] = await Promise.all([
-        intelligenceApi.getPayrollRisk(currentUser?.employee_id || currentUser?.id || 1), // getting current user risk profile
+        intelligenceApi.getAllPayrollRisks(),
         intelligenceApi.getPayrollAnomalies()
       ]);
-      setRiskData([riskRes.data]); // Wrap in array for the table component
-      setAnomalies(anomalyRes.data);
+      setRiskData(riskRes.data || []);
+      setAnomalies(anomalyRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -202,7 +202,7 @@ const Payroll = () => {
                 {filtered.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.payslipNumber}</td>
-                    {canManagePayroll && <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.employeeName} ({p.employeeId})</td>}
+                    {canManagePayroll && <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>{p.employeeName}</td>}
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.periodStart} to {p.periodEnd}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>${p.grossSalary.toLocaleString()}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>${p.netSalary.toLocaleString()}</td>
@@ -229,12 +229,12 @@ const Payroll = () => {
   const renderRisk = () => {
     if (loadingRisk) return <Loader />;
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 'var(--spacing-3)', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 'var(--spacing-3)', alignItems: 'start' }}>
         <div>
-          <PayrollRiskTable risks={riskData} />
+          <PayrollRiskTable risks={riskData} onRefresh={fetchRiskData} />
         </div>
         <div>
-          <AnomalyAlerts anomalies={anomalies} />
+          <AnomalyAlerts anomalies={anomalies} onRefresh={fetchRiskData} />
         </div>
       </div>
     );

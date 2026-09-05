@@ -4,7 +4,8 @@ import { payrollApi } from '../../services/payrollApi';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
-import { AlertTriangle, CheckCircle, RefreshCcw, DollarSign, Users, AlertCircle, ArrowLeft, Check, CheckCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCcw, DollarSign, Users, AlertCircle, ArrowLeft, Check, CheckCheck, ShieldCheck } from 'lucide-react';
+import PayrunAuditReportModal from '../../components/intelligence/PayrunAuditReportModal';
 
 const PayrunDetails = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const PayrunDetails = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   const fetchDetails = async () => {
     setLoading(true);
@@ -39,7 +41,9 @@ const PayrunDetails = () => {
     setProcessing(true);
     try {
       const res = await payrollApi.processPayrun(id);
-      setPayrun(res.data);
+      if (res.data) {
+        setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
+      }
       setActionSuccess('Payroll computed successfully.');
       setTimeout(() => setActionSuccess(''), 3000);
       await fetchDetails();
@@ -54,7 +58,9 @@ const PayrunDetails = () => {
     setProcessing(true);
     try {
       const res = await payrollApi.validatePayrun(id);
-      setPayrun(res.data);
+      if (res.data) {
+        setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
+      }
       setActionSuccess('Payrun batch successfully validated.');
       setTimeout(() => setActionSuccess(''), 3000);
       await fetchDetails();
@@ -70,7 +76,9 @@ const PayrunDetails = () => {
       setProcessing(true);
       try {
         const res = await payrollApi.markPayrunAsPaid(id);
-        setPayrun(res.data);
+        if (res.data) {
+          setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
+        }
         setActionSuccess('Payrun marked as Paid.');
         setTimeout(() => setActionSuccess(''), 3000);
         await fetchDetails();
@@ -98,21 +106,34 @@ const PayrunDetails = () => {
     return 'var(--color-text-secondary)';
   };
 
+  const displayId = (payrun.id ?? payrun.payrunId ?? id ?? 1).toString().padStart(4, '0');
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: 'var(--spacing-3)' }}>
-        <button onClick={() => navigate('/payroll')} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <ArrowLeft size={16} /> Back to Payroll
-        </button>
-        <h1 style={{ fontSize: '24px', margin: 0 }}>Payrun: PR-{payrun.id.toString().padStart(4, '0')}</h1>
-        <span style={{ 
-          fontSize: '12px', padding: '4px 12px', borderRadius: '12px', fontWeight: 600,
-          backgroundColor: getStatusColor(payrun.status) + '18',
-          color: getStatusColor(payrun.status),
-          border: `1px solid ${getStatusColor(payrun.status)}40`
-        }}>
-          {payrun.status}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button onClick={() => navigate('/payroll')} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <ArrowLeft size={16} /> Back to Payroll
+          </button>
+          <h1 style={{ fontSize: '24px', margin: 0 }}>Payrun: PR-{displayId}</h1>
+          <span style={{ 
+            fontSize: '12px', padding: '4px 12px', borderRadius: '12px', fontWeight: 600,
+            backgroundColor: getStatusColor(payrun.status) + '18',
+            color: getStatusColor(payrun.status),
+            border: `1px solid ${getStatusColor(payrun.status)}40`
+          }}>
+            {payrun.status}
+          </span>
+        </div>
+
+        <Button
+          variant="secondary"
+          onClick={() => setShowAuditModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <ShieldCheck size={16} color="var(--color-brand)" />
+          Explainable Audit Report
+        </Button>
       </div>
 
       {actionSuccess && (
@@ -247,6 +268,13 @@ const PayrunDetails = () => {
           </div>
         </div>
       </Card>
+
+      <PayrunAuditReportModal
+        isOpen={showAuditModal}
+        onClose={() => setShowAuditModal(false)}
+        payrunId={payrun.id || id}
+        payrunName={payrun.name || `PR-${displayId}`}
+      />
     </div>
   );
 };

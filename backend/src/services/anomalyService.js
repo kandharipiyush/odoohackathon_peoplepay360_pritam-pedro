@@ -100,7 +100,7 @@ class AnomalyService {
             type: 'CRITICAL_SALARY_SURGE',
             severity: 'Critical',
             risk: 45.0,
-            description: `Extreme Gross Salary Spike: Current pay (₹${currentGross.toLocaleString('en-IN')}) is +${spikePct.toFixed(1)}% higher than the 3-month rolling average (₹${avgGross.toLocaleString('en-IN')}).`,
+            description: `Extreme Gross Salary Spike: Current pay ($${currentGross.toLocaleString('en-US')}) is +${spikePct.toFixed(1)}% higher than the 3-month rolling average ($${avgGross.toLocaleString('en-US')}).`,
             details: { currentGross, avgGross, spikePct },
           });
           cumulativeRisk += 45;
@@ -135,7 +135,7 @@ class AnomalyService {
         type: 'CONTRACT_CEILING_EXCEEDED',
         severity: 'High',
         risk: 30.0,
-        description: `Gross amount exceeds base contract wage (₹${contractWage.toLocaleString('en-IN')}) by ${surgeOverContract.toFixed(1)}%.`,
+        description: `Gross amount exceeds base contract wage ($${contractWage.toLocaleString('en-US')}) by ${surgeOverContract.toFixed(1)}%.`,
         details: { contractWage, currentGross, surgeOverContract },
       });
       cumulativeRisk += 30;
@@ -203,7 +203,7 @@ class AnomalyService {
         type: 'NET_PAY_COLLAPSE',
         severity: 'Critical',
         risk: 50.0,
-        description: `Net take-home pay is zero or negative (₹${currentNet.toFixed(2)}) due to total deductions of ₹${(currentGross - currentNet).toFixed(2)}.`,
+        description: `Net take-home pay is zero or negative ($${currentNet.toFixed(2)}) due to total deductions of $${(currentGross - currentNet).toFixed(2)}.`,
         details: { currentGross, currentNet },
       });
       cumulativeRisk += 50;
