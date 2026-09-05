@@ -90,9 +90,10 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const timeOffRoutes = require('./routes/timeOffRoutes');
 const payrunRoutes = require('./routes/payrunRoutes');
 const payslipRoutes = require('./routes/payslipRoutes');
+const intelligenceRoutes = require('./routes/intelligenceRoutes');
 
 // ==========================================
-// 3. Application Routes (Phase 2 & Phase 3)
+// 3. Application Routes (Phase 2, 3, 4 & 5)
 // ==========================================
 app.use('/api/employees', employeeRoutes);
 app.use('/api/contracts', contractRoutes);
@@ -101,6 +102,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/time-off', timeOffRoutes);
 app.use('/api/payruns', payrunRoutes);
 app.use('/api/payslips', payslipRoutes);
+app.use('/api/intelligence', intelligenceRoutes);
 
 // ==========================================
 // 4. Global Error Handling Middlewares
