@@ -10,8 +10,11 @@ router.route('/')
 // Single employee calculation preview (without saving)
 router.post('/preview-calculation', payrunController.previewSalaryCalculation);
 
-// Individual payslip retrieval by payslip ID
+const payslipController = require('../controllers/payslipController');
+
+// Individual payslip retrieval and PDF generation by payslip ID
 router.get('/payslips/:id', payrunController.getPayslipById);
+router.get('/payslips/:id/pdf', payslipController.getPayslipPDF);
 
 // Single payrun routes
 router.route('/:id')
