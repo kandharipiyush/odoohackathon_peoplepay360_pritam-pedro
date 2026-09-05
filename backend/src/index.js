@@ -17,12 +17,16 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 // ==========================================
 // 1. Security & HTTP Middlewares
 // ==========================================
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
-// CORS configuration supporting single or comma-separated allowed origins
+// CORS configuration explicitly supporting frontend development server
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'];
 
 app.use(
   cors({
@@ -31,11 +35,16 @@ app.use(
       if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+      // In development fallback to allowing the origin
+      if (process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
       return callback(new Error(`CORS policy error: Origin ${origin} not allowed`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Disposition'],
   })
 );
 
@@ -83,6 +92,7 @@ app.get('/api', (req, res) => {
 });
 
 // Route Imports
+const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const contractRoutes = require('./routes/contractRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
@@ -95,6 +105,7 @@ const intelligenceRoutes = require('./routes/intelligenceRoutes');
 // ==========================================
 // 3. Application Routes (Phase 2, 3, 4 & 5)
 // ==========================================
+app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/schedules', scheduleRoutes);
