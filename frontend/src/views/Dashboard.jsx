@@ -35,7 +35,7 @@ const Dashboard = () => {
           intelligenceApi.getPayrollForecast({ period: selectedPeriod }),
           intelligenceApi.getDashboardKPIs(selectedPeriod),
           intelligenceApi.getRiskOverview(selectedPeriod),
-          intelligenceApi.getAttendancePayrollImpact(currentUser?.employee_id || currentUser?.id || 1, selectedPeriod),
+          intelligenceApi.getAttendancePayrollImpact('company', selectedPeriod),
           intelligenceApi.getPayrollAnomalies({ period: selectedPeriod })
         ]);
         setForecastData(forecastRes.data);
