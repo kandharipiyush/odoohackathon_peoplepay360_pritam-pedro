@@ -1,0 +1,125 @@
+:root {
+  /* Color Palette - Enterprise Grayscale */
+  --color-bg-main: #F5F5F5;
+  --color-bg-card: #FFFFFF;
+  --color-bg-sidebar: #181818;
+  
+  --color-text-primary: #171717;
+  --color-text-secondary: #737373;
+  --color-text-sidebar: #D4D4D4;
+  --color-text-sidebar-hover: #FFFFFF;
+  --color-text-sidebar-active: #FFFFFF;
+
+  --color-border: #E5E5E5;
+  --color-border-dark: #404040;
+  
+  --color-btn-primary: #262626;
+  --color-btn-primary-hover: #404040;
+  --color-btn-primary-text: #FFFFFF;
+
+  --color-btn-secondary: #FFFFFF;
+  --color-btn-secondary-hover: #F5F5F5;
+  --color-btn-secondary-text: #171717;
+
+  /* Status Colors */
+  --color-status-success: #16A34A; /* Green */
+  --color-status-warning: #D97706; /* Amber */
+  --color-status-error: #DC2626;   /* Red */
+
+  /* Shadows - Minimal */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  /* Spacing */
+  --spacing-1: 8px;
+  --spacing-2: 16px;
+  --spacing-3: 24px;
+  --spacing-4: 32px;
+  --spacing-5: 40px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+/* Layout Utilities */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-3);
+}
+
+/* Form Styles */
+input, select, textarea {
+  font-family: inherit;
+  width: 100%;
+  padding: var(--spacing-1) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s;
+  font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-btn-primary);
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--color-text-primary);
+}
+
+.input-group {
+  margin-bottom: var(--spacing-2);
+}
