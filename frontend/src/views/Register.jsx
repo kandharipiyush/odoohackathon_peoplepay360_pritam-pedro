@@ -3,7 +3,31 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../services/authApi';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle, ShieldAlert, UserCheck, Briefcase, Building2 } from 'lucide-react';
+
+const PREFERRED_POSITIONS = [
+  'Software Developer (Full Stack)',
+  'Software Developer (Frontend - React / Vue)',
+  'Software Developer (Backend - Node / Java / Python)',
+  'Software Developer (Mobile - Flutter / React Native)',
+  'Software Development Engineer (SDE)',
+  'DevOps & Cloud Engineer',
+  'QA & Automation Test Engineer',
+  'UI/UX Product Designer',
+  'Data Analyst / Data Engineer',
+  'Product Specialist / Associate PM',
+  'Sales & Business Development',
+  'Operations Specialist',
+];
+
+const DEPARTMENTS = [
+  'Engineering',
+  'Product & Design',
+  'Sales & Marketing',
+  'Operations',
+  'Customer Support',
+  'Finance',
+];
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,14 +39,15 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'Employee',
+    preferred_position: 'Software Developer (Full Stack)',
+    department: 'Engineering',
     agreed: false
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [submittedData, setSubmittedData] = useState(null);
   
   const getPasswordStrength = (pass) => {
     let score = 0;
@@ -59,29 +84,34 @@ const Register = () => {
       return;
     }
     if (strength < 2) {
-      setError('Password is too weak.');
+      setError('Password is too weak. Must include numbers, uppercase, or special characters.');
       return;
     }
     if (!formData.agreed) {
-      setError('You must agree to the Terms of Service.');
+      setError('You must accept the terms to submit your employee application.');
       return;
     }
 
     setLoading(true);
-    // Map friendly role names to DB enum values expected by the backend
-    const roleEnumMap = {
-      'Employee': 'Employee',
-      'HR Manager': 'HR_Manager',
-      'HR Payroll Manager': 'HR_Payroll_Manager',
-    };
     const payload = {
-      ...formData,
-      role: roleEnumMap[formData.role] || 'Employee',
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      preferred_position: formData.preferred_position,
+      department: formData.department,
+      role: 'Employee'
     };
+
     try {
       await authApi.register(payload);
-      setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
+      setSubmittedData({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        position: formData.preferred_position,
+        department: formData.department
+      });
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -89,13 +119,44 @@ const Register = () => {
     }
   };
 
-  if (success) {
+  if (submittedData) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-main)' }}>
-        <Card style={{ width: '100%', maxWidth: '400px', textAlign: 'center', padding: 'var(--spacing-4)' }}>
-          <CheckCircle size={48} color="var(--color-status-success)" style={{ margin: '0 auto var(--spacing-3)' }} />
-          <h2 style={{ marginBottom: '8px' }}>Registration Successful!</h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Redirecting you to login...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-main)', padding: 'var(--spacing-4)' }}>
+        <Card style={{ width: '100%', maxWidth: '480px', textAlign: 'center', padding: 'var(--spacing-5)' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(34, 197, 94, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--spacing-3)' }}>
+            <UserCheck size={36} color="var(--color-status-success)" />
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: 600, marginBottom: '8px' }}>Registration Submitted to HR!</h2>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', lineHeight: '1.5', marginBottom: 'var(--spacing-4)' }}>
+            Thank you, <strong>{submittedData.name}</strong>. Your employee application has been forwarded to the Human Resources team for review.
+          </p>
+
+          <div style={{ backgroundColor: 'var(--color-bg-main)', padding: '16px', borderRadius: '8px', textAlign: 'left', marginBottom: 'var(--spacing-4)', border: '1px solid var(--color-border)', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Registered Email:</span>
+              <strong>{submittedData.email}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Preferred Role:</span>
+              <strong>{submittedData.position}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Department:</span>
+              <strong>{submittedData.department}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--color-border)', paddingTop: '8px' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Account Status:</span>
+              <span style={{ color: '#EAB308', fontWeight: 600 }}>Pending HR Approval</span>
+            </div>
+          </div>
+
+          <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '12px', borderRadius: '6px', fontSize: '12px', color: 'var(--color-text-primary)', textAlign: 'left', marginBottom: 'var(--spacing-4)' }}>
+            ℹ️ <strong>Note:</strong> HR will review your application, verify details, and assign your official job designation and contract. You will be able to log in immediately once approved.
+          </div>
+
+          <Button variant="primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => navigate('/login')}>
+            Return to Sign In
+          </Button>
         </Card>
       </div>
     );
@@ -106,10 +167,27 @@ const Register = () => {
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', 
       backgroundColor: 'var(--color-bg-main)', padding: 'var(--spacing-4)' 
     }}>
-      <Card style={{ width: '100%', maxWidth: '500px', padding: 'var(--spacing-4)' }}>
+      <Card style={{ width: '100%', maxWidth: '520px', padding: 'var(--spacing-5)' }}>
         <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-4)' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 600 }}>Create an Account</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '8px' }}>Join PeoplePay360</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 700 }}>Employee Registration</h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '6px' }}>
+            Apply to join PeoplePay360
+          </p>
+        </div>
+
+        {/* HR Approval Process Notice */}
+        <div style={{ 
+          backgroundColor: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', 
+          padding: '12px 14px', borderRadius: '8px', marginBottom: '20px', fontSize: '13px',
+          display: 'flex', gap: '10px', alignItems: 'flex-start'
+        }}>
+          <ShieldAlert size={18} color="#6366F1" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong style={{ color: '#4F46E5', display: 'block', marginBottom: '2px' }}>HR Approval & Role Assignment</strong>
+            <span style={{ color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
+              Submit your preferred role below. HR will review your request and assign your official job designation and payroll package before account activation.
+            </span>
+          </div>
         </div>
 
         {error && (
@@ -125,34 +203,49 @@ const Register = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="input-group">
               <label>First Name *</label>
-              <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
+              <input type="text" name="firstName" placeholder="Jane" value={formData.firstName} onChange={handleChange} required />
             </div>
             <div className="input-group">
               <label>Last Name *</label>
-              <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
+              <input type="text" name="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} required />
             </div>
           </div>
 
           <div className="input-group">
-            <label>Email Address *</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+            <label>Work / Personal Email *</label>
+            <input type="email" name="email" placeholder="jane.doe@example.com" value={formData.email} onChange={handleChange} required />
           </div>
 
           <div className="input-group">
             <label>Phone Number</label>
-            <input type="text" name="phone" value={formData.phone} onChange={handleChange} />
+            <input type="text" name="phone" placeholder="+1 (555) 000-0000" value={formData.phone} onChange={handleChange} />
           </div>
 
+          {/* Preferred Role / Specialization */}
           <div className="input-group">
-            <label>Requested Role *</label>
-            <select name="role" value={formData.role} onChange={handleChange}>
-              <option value="Employee">Employee</option>
-              <option value="HR Manager">HR Manager</option>
-              <option value="HR Payroll Manager">HR Payroll Manager</option>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Briefcase size={14} color="var(--color-brand)" /> Preferred Role / Specialization *
+            </label>
+            <select name="preferred_position" value={formData.preferred_position} onChange={handleChange}>
+              {PREFERRED_POSITIONS.map(pos => (
+                <option key={pos} value={pos}>{pos}</option>
+              ))}
             </select>
             <small style={{ color: 'var(--color-text-secondary)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-              Note: Privileged roles must be verified by administrators.
+              Select your preferred role. HR will assign the final designation upon approval.
             </small>
+          </div>
+
+          {/* Preferred Department */}
+          <div className="input-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Building2 size={14} color="var(--color-brand)" /> Preferred Department
+            </label>
+            <select name="department" value={formData.department} onChange={handleChange}>
+              {DEPARTMENTS.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -161,11 +254,12 @@ const Register = () => {
               <input 
                 type={showPassword ? "text" : "password"} 
                 name="password" value={formData.password} onChange={handleChange} required 
+                placeholder="••••••••"
               />
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '12px', top: '38px', background: 'none', color: 'var(--color-text-secondary)' }}
+                style={{ position: 'absolute', right: '12px', top: '38px', background: 'none', color: 'var(--color-text-secondary)', border: 'none', cursor: 'pointer' }}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -185,15 +279,16 @@ const Register = () => {
               <input 
                 type={showPassword ? "text" : "password"} 
                 name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required 
+                placeholder="••••••••"
               />
             </div>
           </div>
 
-          <div style={{ marginBottom: 'var(--spacing-4)', fontSize: '14px' }}>
+          <div style={{ marginBottom: 'var(--spacing-4)', fontSize: '13px' }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 400 }}>
-              <input type="checkbox" name="agreed" checked={formData.agreed} onChange={handleChange} style={{ marginTop: '4px' }} required />
+              <input type="checkbox" name="agreed" checked={formData.agreed} onChange={handleChange} style={{ marginTop: '3px' }} required />
               <span style={{ color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
-                I agree to the Terms of Service and acknowledge that my role may require admin approval.
+                I agree to the Terms of Service and acknowledge that my profile and role assignment must be approved by HR before login.
               </span>
             </label>
           </div>
@@ -203,14 +298,14 @@ const Register = () => {
               Cancel
             </Button>
             <Button type="submit" variant="primary" style={{ flex: 1, justifyContent: 'center' }} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Account'}
+              {loading ? 'Submitting Request...' : 'Submit Application'}
             </Button>
           </div>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: 'var(--spacing-4)', fontSize: '14px' }}>
-          <span style={{ color: 'var(--color-text-secondary)' }}>Already have an account? </span>
-          <Link to="/login" style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>Sign in</Link>
+          <span style={{ color: 'var(--color-text-secondary)' }}>Already registered or approved? </span>
+          <Link to="/login" style={{ color: 'var(--color-brand)', fontWeight: 600 }}>Sign in</Link>
         </div>
       </Card>
     </div>

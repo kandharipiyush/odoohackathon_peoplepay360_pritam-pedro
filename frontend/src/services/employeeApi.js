@@ -44,10 +44,39 @@ export const employeeApi = {
       job_position: data.position || data.job_position,
       manager_id: data.managerId || data.manager_id || null,
       status: data.status || 'Active',
+      role: data.role || 'Employee',
+      password: data.password || null,
+      wage: data.wage || 75000,
     };
     const res = await api.post('/employees', payload);
     if (res.data) res.data = mapEmployee(res.data);
     return res;
+  },
+
+  getPendingEmployees: async () => {
+    const res = await api.get('/employees/pending');
+    if (Array.isArray(res.data)) {
+      res.data = res.data.map(mapEmployee);
+    } else {
+      res.data = [];
+    }
+    return res;
+  },
+
+  approveEmployee: async (id, data) => {
+    const payload = {
+      job_position: data.position || data.job_position,
+      department: data.department,
+      manager_id: data.managerId || data.manager_id || null,
+      role: data.role || 'Employee',
+      wage: data.wage || 75000,
+      allocated_days: data.allocatedDays || 20,
+    };
+    return api.post(`/employees/${id}/approve`, payload);
+  },
+
+  rejectEmployee: async (id) => {
+    return api.post(`/employees/${id}/reject`);
   },
 
   updateEmployee: async (id, data) => {

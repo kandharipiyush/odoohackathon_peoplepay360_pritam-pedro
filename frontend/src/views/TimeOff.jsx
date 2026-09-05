@@ -8,7 +8,7 @@ import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
 import Modal from '../components/common/Modal';
-import { Clock, Plus, Check, X, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, Plus, Check, X, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 const TimeOff = () => {
   const [searchParams] = useSearchParams();
@@ -23,6 +23,7 @@ const TimeOff = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
+  // Request leave modal
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({
     leaveType: 'Paid Annual Leave',
@@ -32,6 +33,12 @@ const TimeOff = () => {
     reason: ''
   });
   const [saving, setSaving] = useState(false);
+
+  // Deny / Reject modal
+  const [denyModalOpen, setDenyModalOpen] = useState(false);
+  const [denyRequestId, setDenyRequestId] = useState(null);
+  const [denyReason, setDenyReason] = useState('Schedule conflict');
+  const [denying, setDenying] = useState(false);
 
   const userRole = (currentUser?.role || '').toLowerCase();
   const canManage = userRole.includes('hr') || userRole.includes('admin') || userRole.includes('payroll') || userRole.includes('auditor');
@@ -103,35 +110,50 @@ const TimeOff = () => {
     }
   };
 
-  const handleReject = async (id) => {
-    const reason = window.prompt('Enter reason for denial / rejection (optional):', 'Schedule conflict');
-    if (reason === null) return; // User cancelled prompt
+  const openDenyModal = (id) => {
+    setDenyRequestId(id);
+    setDenyReason('Schedule conflict');
+    setDenyModalOpen(true);
+  };
 
-    setActionLoadingId(id);
+  const handleDenySubmit = async (e) => {
+    e.preventDefault();
+    if (!denyRequestId) return;
+
+    setDenying(true);
     try {
-      await timeOffApi.rejectRequest(id, { reason });
-      addToast('Leave request denied / rejected.', 'warning');
+      await timeOffApi.rejectRequest(denyRequestId, { reason: denyReason || 'Schedule conflict' });
+      addToast('Leave request denied.', 'warning');
+      setDenyModalOpen(false);
+      setDenyRequestId(null);
       fetchData();
     } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Failed to reject request';
+      const msg = err.response?.data?.error || err.message || 'Failed to deny request';
       alert(msg);
     } finally {
-      setActionLoadingId(null);
+      setDenying(false);
     }
   };
 
   const getStatusColor = (status) => {
     if (status === 'Approved') return 'var(--color-status-success)';
-    if (status === 'Rejected' || status === 'Refused') return 'var(--color-status-error)';
+    if (status === 'Rejected' || status === 'Refused' || status === 'Denied') return 'var(--color-status-error)';
     if (status === 'Pending' || status === 'Submitted') return 'var(--color-status-warning)';
     return 'var(--color-text-secondary)';
+  };
+
+  const getStatusLabel = (status) => {
+    if (status === 'Approved') return 'Approved';
+    if (status === 'Rejected' || status === 'Refused' || status === 'Denied') return 'Denied';
+    if (status === 'Pending' || status === 'Submitted') return 'Pending Approval';
+    return status;
   };
 
   const filteredRequests = requests.filter(r => {
     if (statusFilter === 'ALL') return true;
     if (statusFilter === 'PENDING') return r.status === 'Submitted' || r.status === 'Pending';
     if (statusFilter === 'APPROVED') return r.status === 'Approved';
-    if (statusFilter === 'REJECTED') return r.status === 'Rejected' || r.status === 'Refused';
+    if (statusFilter === 'REJECTED') return r.status === 'Rejected' || r.status === 'Refused' || r.status === 'Denied';
     return true;
   });
 
@@ -224,7 +246,7 @@ const TimeOff = () => {
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>TYPE</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>DATES</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>DURATION</th>
-                <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>REASON</th>
+                <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>REASON / REMARKS</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>SUBMITTED</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>STATUS</th>
                 {canManage && <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500, textAlign: 'right' }}>ACTIONS</th>}
@@ -250,11 +272,11 @@ const TimeOff = () => {
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.submittedDate}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ 
-                        fontSize: '12px', padding: '4px 8px', borderRadius: '12px', fontWeight: 500,
+                        fontSize: '12px', padding: '4px 8px', borderRadius: '12px', fontWeight: 600,
                         backgroundColor: getStatusColor(r.status) + '20', 
                         color: getStatusColor(r.status) 
                       }}>
-                        {r.status}
+                        {getStatusLabel(r.status)}
                       </span>
                     </td>
                     {canManage && (
@@ -282,7 +304,7 @@ const TimeOff = () => {
                               <Check size={14} /> Approve
                             </button>
                             <button
-                              onClick={() => handleReject(r.id)}
+                              onClick={() => openDenyModal(r.id)}
                               disabled={isActing}
                               style={{
                                 display: 'inline-flex',
@@ -303,7 +325,11 @@ const TimeOff = () => {
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                          <span style={{ 
+                            fontSize: '12px', 
+                            fontWeight: 600,
+                            color: r.status === 'Approved' ? '#10B981' : '#EF4444' 
+                          }}>
                             {r.status === 'Approved' ? '✓ Approved' : '✗ Denied'}
                           </span>
                         )}
@@ -316,6 +342,43 @@ const TimeOff = () => {
           </table>
         </Card>
       )}
+
+      {/* Denial Reason Modal */}
+      <Modal isOpen={denyModalOpen} onClose={() => setDenyModalOpen(false)} title="Deny Leave Request">
+        <form onSubmit={handleDenySubmit}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+            <AlertTriangle size={18} color="#EF4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <p style={{ margin: 0, fontSize: '13px', color: '#991B1B' }}>
+              Are you sure you want to refuse this leave request? Please provide an optional reason or explanation for the employee.
+            </p>
+          </div>
+
+          <div className="input-group" style={{ marginBottom: '16px' }}>
+            <label>Reason for Denial / Refusal *</label>
+            <textarea 
+              rows={3} 
+              value={denyReason} 
+              onChange={e => setDenyReason(e.target.value)} 
+              placeholder="e.g. Schedule conflict with ongoing product sprint"
+              required 
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <Button type="button" variant="secondary" onClick={() => setDenyModalOpen(false)} disabled={denying}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="primary" 
+              style={{ backgroundColor: '#EF4444', borderColor: '#EF4444' }}
+              disabled={denying}
+            >
+              {denying ? 'Denying...' : 'Confirm Denial'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Request Leave Modal */}
       <Modal isOpen={isRequestModalOpen} onClose={() => setIsRequestModalOpen(false)} title="Request Time Off">

@@ -41,10 +41,11 @@ router.post('/login', async (req, res, next) => {
 
     const user = rows[0];
 
-    if (!user.is_active) {
+    // Check if account is deactivated or pending approval
+    if (!user.is_active || user.emp_status === 'Pending Approval') {
       return res.status(403).json({
         success: false,
-        error: 'Account is deactivated. Contact your administrator.',
+        error: 'Your registration is currently pending review and role assignment by HR. Please wait until HR approves your account.',
       });
     }
 
@@ -106,17 +107,16 @@ router.post('/login', async (req, res, next) => {
 
 /**
  * POST /api/auth/register
- * Register a new user with bcrypt-hashed password
+ * Public registration for employee applicants (requires HR approval before login)
  */
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName, department, job_position, role } = req.body;
+    const { email, password, firstName, lastName, phone, department, job_position, preferred_position } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
-      debugger;
       return res.status(400).json({
         success: false,
-        error: 'email, password, firstName, and lastName are required',
+        error: 'First name, last name, email, and password are required',
       });
     }
 
@@ -125,7 +125,7 @@ router.post('/register', async (req, res, next) => {
     if (existing.length > 0) {
       return res.status(409).json({
         success: false,
-        error: 'Email is already registered',
+        error: 'An account with this email address is already registered',
       });
     }
 
@@ -133,28 +133,31 @@ router.post('/register', async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    // Create employee record first
+    const positionChoice = preferred_position || job_position || 'Software Developer';
+    const deptChoice = department || 'Engineering';
+
+    // Create employee record with 'Pending Approval' status
     const [empResult] = await pool.query(
       `INSERT INTO employees (first_name, last_name, email, department, job_position, status)
-       VALUES (?, ?, ?, ?, ?, 'Active')`,
-      [firstName, lastName, email, department || 'Unassigned', job_position || 'Staff']
+       VALUES (?, ?, ?, ?, ?, 'Pending Approval')`,
+      [firstName, lastName, email, deptChoice, positionChoice]
     );
 
-    // Create user record linked to employee
-    const userRole = role || 'Employee';
+    // Create user record linked to employee as 'Employee' role with is_active = FALSE (awaiting HR approval)
     const [userResult] = await pool.query(
-      `INSERT INTO users (employee_id, email, password_hash, role) VALUES (?, ?, ?, ?)`,
-      [empResult.insertId, email, password_hash, userRole]
+      `INSERT INTO users (employee_id, email, password_hash, role, is_active) VALUES (?, ?, ?, 'Employee', FALSE)`,
+      [empResult.insertId, email, password_hash]
     );
 
-    logger.info('New user registered:', { email, role: userRole });
+    logger.info('New employee applicant registered (Pending HR Approval):', { email, position: positionChoice });
 
     return res.status(201).json({
       success: true,
       data: {
-        message: 'Registration successful',
+        message: 'Registration submitted successfully! Your application has been sent to HR for approval and official role assignment.',
         userId: userResult.insertId,
         employeeId: empResult.insertId,
+        pendingApproval: true,
       },
     });
   } catch (error) {

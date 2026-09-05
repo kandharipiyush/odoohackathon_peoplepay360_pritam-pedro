@@ -15,7 +15,7 @@ import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
 
 const Payroll = () => {
   const { currentUser } = useAuth();
-  const canManagePayroll = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
+  const canManagePayroll = ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
   const [activeTab, setActiveTab] = useState(canManagePayroll ? 'payruns' : 'payslips'); // 'payruns', 'payslips', 'risk'
   
   // Payrun State

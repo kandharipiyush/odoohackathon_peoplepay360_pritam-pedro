@@ -3,10 +3,56 @@ const employeeService = require('../services/employeeService');
 class EmployeeController {
   async createEmployee(req, res, next) {
     try {
-      const newEmployee = await employeeService.createEmployee(req.body);
+      const creatorRole = req.user?.role || null;
+      const newEmployee = await employeeService.createEmployee({
+        ...req.body,
+        creator_role: creatorRole,
+      });
       return res.status(201).json({
         success: true,
         data: newEmployee,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPendingEmployees(req, res, next) {
+    try {
+      const pending = await employeeService.getPendingEmployees();
+      return res.status(200).json({
+        success: true,
+        count: pending.length,
+        data: pending,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async approveEmployee(req, res, next) {
+    try {
+      const approverRole = req.user?.role || null;
+      const approved = await employeeService.approveEmployee(req.params.id, {
+        ...req.body,
+        approver_role: approverRole,
+      });
+      return res.status(200).json({
+        success: true,
+        message: 'Employee registration approved successfully',
+        data: approved,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async rejectEmployee(req, res, next) {
+    try {
+      const result = await employeeService.rejectEmployee(req.params.id);
+      return res.status(200).json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       next(error);

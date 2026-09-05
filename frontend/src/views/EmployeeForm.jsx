@@ -1,25 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { employeeApi } from '../services/employeeApi';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
+import { Shield, Key, Briefcase, Building2, User } from 'lucide-react';
+
+const STANDARD_POSITIONS = [
+  'Software Developer',
+  'Software Development Engineer (SDE)',
+  'Senior Software Developer',
+  'Frontend Developer',
+  'Backend Developer',
+  'Full Stack Developer',
+  'DevOps Engineer',
+  'QA Automation Engineer',
+  'UI/UX Designer',
+  'Product Manager',
+  'Data Analyst',
+  'HR Specialist',
+  'Sales Executive',
+  'Financial Analyst'
+];
+
+const DEPARTMENTS = [
+  'Engineering',
+  'Product & Design',
+  'Sales & Marketing',
+  'Human Resources',
+  'Finance & Accounting',
+  'Operations',
+  'Management'
+];
 
 const EmployeeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const isEdit = Boolean(id);
+  const isAdmin = currentUser?.role === 'Admin';
 
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    department: '',
-    position: '',
+    department: 'Engineering',
+    position: 'Software Developer',
+    customPosition: '',
     employeeId: '',
-    joiningDate: '',
-    status: 'Active'
+    joiningDate: new Date().toISOString().split('T')[0],
+    status: 'Active',
+    role: 'Employee',
+    password: '',
+    wage: 75000
   });
 
   const [loading, setLoading] = useState(isEdit);
@@ -30,8 +65,18 @@ const EmployeeForm = () => {
   useEffect(() => {
     if (isEdit) {
       employeeApi.getEmployee(id).then(res => {
-        if (res.data) setFormData(res.data);
-        else setError('Employee not found');
+        if (res.data) {
+          const emp = res.data;
+          const isStandard = STANDARD_POSITIONS.includes(emp.position);
+          setFormData(prev => ({
+            ...prev,
+            ...emp,
+            position: isStandard ? emp.position : 'Other',
+            customPosition: isStandard ? '' : emp.position
+          }));
+        } else {
+          setError('Employee not found');
+        }
         setLoading(false);
       }).catch(() => {
         setError('Failed to load employee data');
@@ -55,18 +100,28 @@ const EmployeeForm = () => {
       return;
     }
 
+    const finalPosition = formData.position === 'Other' 
+      ? formData.customPosition || 'Staff' 
+      : formData.position;
+
+    const payload = {
+      ...formData,
+      position: finalPosition,
+      job_position: finalPosition,
+    };
+
     setSaving(true);
     try {
       if (isEdit) {
-        await employeeApi.updateEmployee(id, formData);
-        setSuccess('Employee updated successfully.');
+        await employeeApi.updateEmployee(id, payload);
+        setSuccess('Employee record updated successfully.');
       } else {
-        const res = await employeeApi.createEmployee(formData);
+        const res = await employeeApi.createEmployee(payload);
         setSuccess('Employee created successfully.');
-        setTimeout(() => navigate(`/employees/${res.data.id}`), 1500);
+        setTimeout(() => navigate(`/employees/${res.data?.id || ''}`), 1500);
       }
     } catch (err) {
-      setError('Failed to save employee.');
+      setError(err.response?.data?.error || err.message || 'Failed to save employee.');
     } finally {
       setSaving(false);
     }
@@ -77,7 +132,12 @@ const EmployeeForm = () => {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-3)' }}>
-        <h1 style={{ fontSize: '24px' }}>{isEdit ? 'Edit Employee' : 'Add New Employee'}</h1>
+        <div>
+          <h1 style={{ fontSize: '24px' }}>{isEdit ? 'Edit Employee' : 'Add New Employee'}</h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>
+            {isAdmin ? 'Admin Portal: Direct employee and privileged HR user creation' : 'HR Portal: Create employee master record'}
+          </p>
+        </div>
         <Button variant="secondary" onClick={() => navigate(-1)}>Back</Button>
       </div>
 
@@ -106,26 +166,42 @@ const EmployeeForm = () => {
           </div>
         </Card>
 
-        <Card title="Employment Details">
+        <Card title="Employment & Position Details" style={{ marginTop: 'var(--spacing-3)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
             <div className="input-group">
-              <label>Employee ID</label>
-              <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} />
+              <label>Employee ID (Optional auto-gen)</label>
+              <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP-015" />
             </div>
             <div className="input-group">
               <label>Department</label>
               <select name="department" value={formData.department} onChange={handleChange}>
-                <option value="">Select Department</option>
-                <option value="Management">Management</option>
-                <option value="Human Resources">Human Resources</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Sales">Sales</option>
+                {DEPARTMENTS.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
             </div>
             <div className="input-group">
               <label>Job Position</label>
-              <input type="text" name="position" value={formData.position} onChange={handleChange} />
+              <select name="position" value={formData.position} onChange={handleChange}>
+                {STANDARD_POSITIONS.map(pos => (
+                  <option key={pos} value={pos}>{pos}</option>
+                ))}
+                <option value="Other">Custom Position...</option>
+              </select>
             </div>
+            {formData.position === 'Other' && (
+              <div className="input-group">
+                <label>Specify Custom Job Position *</label>
+                <input 
+                  type="text" 
+                  name="customPosition" 
+                  value={formData.customPosition} 
+                  onChange={handleChange} 
+                  placeholder="e.g. Cloud Security Architect" 
+                  required 
+                />
+              </div>
+            )}
             <div className="input-group">
               <label>Joining Date</label>
               <input type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} />
@@ -138,13 +214,67 @@ const EmployeeForm = () => {
                 <option value="On Leave">On Leave</option>
               </select>
             </div>
+            {!isEdit && (
+              <div className="input-group">
+                <label>Starting Annual Wage ($)</label>
+                <input type="number" name="wage" value={formData.wage} onChange={handleChange} />
+              </div>
+            )}
           </div>
         </Card>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 'var(--spacing-3)' }}>
+        {/* System Access & Credentials */}
+        {!isEdit && (
+          <Card title="System Credentials & Role Authorization" style={{ marginTop: 'var(--spacing-3)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-3)' }}>
+              <div className="input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Shield size={14} color="var(--color-brand)" />
+                  System Role Authorization
+                </label>
+                {isAdmin ? (
+                  <select name="role" value={formData.role} onChange={handleChange}>
+                    <option value="Employee">Standard Employee</option>
+                    <option value="HR_Manager">HR Manager</option>
+                    <option value="HR_Payroll_Manager">HR Payroll Manager</option>
+                    <option value="Finance_Auditor">Finance Auditor</option>
+                    <option value="Admin">System Administrator</option>
+                  </select>
+                ) : (
+                  <div>
+                    <input type="text" value="Employee (HR accounts restricted to Admin)" disabled style={{ backgroundColor: '#f5f5f5' }} />
+                  </div>
+                )}
+                <small style={{ color: 'var(--color-text-secondary)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+                  {isAdmin 
+                    ? 'Admin privilege: You can authoritatively provision HR and Manager accounts.' 
+                    : 'HR Managers can only provision standard Employee accounts.'}
+                </small>
+              </div>
+
+              <div className="input-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Key size={14} color="var(--color-brand)" /> Initial Login Password
+                </label>
+                <input 
+                  type="password" 
+                  name="password" 
+                  placeholder="Set initial password" 
+                  value={formData.password} 
+                  onChange={handleChange} 
+                />
+                <small style={{ color: 'var(--color-text-secondary)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
+                  Allows the user to log in immediately without waiting for signup.
+                </small>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 'var(--spacing-4)' }}>
           <Button variant="secondary" onClick={() => navigate(-1)} disabled={saving}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Employee'}
+            {saving ? 'Saving...' : (isEdit ? 'Update Employee' : 'Create Employee Account')}
           </Button>
         </div>
       </form>
