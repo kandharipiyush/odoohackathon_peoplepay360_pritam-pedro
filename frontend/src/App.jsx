@@ -24,6 +24,7 @@ import PayrunCreate from './views/payroll/PayrunCreate';
 import PayrunDetails from './views/payroll/PayrunDetails';
 import PayslipDetails from './views/payroll/PayslipDetails';
 import Reports from './views/Reports';
+import PayrollAnalytics from './views/PayrollAnalytics';
 import Unauthorized from './views/Unauthorized';
 
 function App() {
@@ -179,8 +180,16 @@ function App() {
         <Route 
           path="reports" 
           element={
-            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
               <Reports />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="reports/payroll" 
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+              <PayrollAnalytics />
             </RoleGuard>
           } 
         />

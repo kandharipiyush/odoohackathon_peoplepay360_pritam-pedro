@@ -8,6 +8,7 @@ import Loader from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
 import { FileText, Plus, Eye, Search, Play, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 import PayrollRiskTable from '../components/intelligence/PayrollRiskTable';
 import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
@@ -85,11 +86,13 @@ const Payroll = () => {
     }
   };
 
+  const { addToast } = useToast();
+
   const handleBulkEmail = async () => {
     const selected = payslips.map(p => p.id); 
     if (window.confirm(`Are you sure you want to email ${selected.length} payslips?`)) {
       await payrollApi.bulkEmailPayslips(selected);
-      alert('Payslips emailed successfully.');
+      addToast('Payslips emailed successfully.', 'success');
     }
   };
 

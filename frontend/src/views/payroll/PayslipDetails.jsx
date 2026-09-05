@@ -7,11 +7,13 @@ import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import { Printer, Download, Mail, ArrowLeft, Building, User } from 'lucide-react';
 import ExplainableAuditor from '../../components/intelligence/ExplainableAuditor';
+import { useToast } from '../../context/ToastContext';
 
 const PayslipDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { addToast } = useToast();
   
   const [payslip, setPayslip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,14 +38,14 @@ const PayslipDetails = () => {
   const handleDownload = async () => {
     setActionLoading(true);
     await payrollApi.downloadPayslipPdf(id);
-    alert('PDF downloaded (Mock action)');
+    addToast('PDF downloaded successfully.', 'success');
     setActionLoading(false);
   };
 
   const handleEmail = async () => {
     setActionLoading(true);
     await payrollApi.emailPayslip(id);
-    alert('Payslip emailed successfully');
+    addToast('Payslip emailed successfully.', 'success');
     setActionLoading(false);
   };
 

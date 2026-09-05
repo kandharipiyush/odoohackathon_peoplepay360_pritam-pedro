@@ -184,3 +184,48 @@ label {
   background-color: #B91C1C; /* Darker red */
   border-color: #B91C1C;
 }
+
+/* Toast Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .content-area {
+    padding: var(--spacing-2);
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .content-area {
+    padding: var(--spacing-2);
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-area {
+    padding: var(--spacing-1);
+  }
+
+  h1 {
+    font-size: 22px !important;
+  }
+}

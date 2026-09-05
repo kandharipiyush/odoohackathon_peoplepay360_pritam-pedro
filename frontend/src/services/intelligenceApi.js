@@ -95,5 +95,38 @@ export const intelligenceApi = {
     return new Promise(resolve => setTimeout(() => {
       resolve({ data: mockAudit[payslipId] || mockAudit['1'] });
     }, 600));
+  },
+
+  getDashboardKPIs: async () => {
+    return new Promise(resolve => setTimeout(() => {
+      resolve({
+        data: {
+          totalEmployees: { value: 142, change: '+3%' },
+          activeEmployees: { value: 138, change: '+2%' },
+          totalNetSalary: { value: '₹42,50,000', change: '+1.5%' },
+          attendanceHealth: { value: '98%', status: 'Healthy' },
+          pendingTimeOff: { value: 12, status: 'Attention' },
+          payrollStatus: { value: 'Processing', status: 'Pending' }
+        }
+      });
+    }, 500));
+  },
+
+  getRiskOverview: async () => {
+    return new Promise(resolve => setTimeout(() => {
+      resolve({
+        data: {
+          overallRisk: 'Medium',
+          score: 45,
+          counts: {
+            low: 120,
+            medium: 15,
+            high: 5,
+            critical: 2
+          },
+          highRiskEmployees: 7
+        }
+      });
+    }, 600));
   }
 };
