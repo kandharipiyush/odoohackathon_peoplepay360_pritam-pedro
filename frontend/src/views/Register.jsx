@@ -68,8 +68,18 @@ const Register = () => {
     }
 
     setLoading(true);
+    // Map friendly role names to DB enum values expected by the backend
+    const roleEnumMap = {
+      'Employee': 'Employee',
+      'HR Manager': 'HR_Manager',
+      'HR Payroll Manager': 'HR_Payroll_Manager',
+    };
+    const payload = {
+      ...formData,
+      role: roleEnumMap[formData.role] || 'Employee',
+    };
     try {
-      await authApi.register(formData);
+      await authApi.register(payload);
       setSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {

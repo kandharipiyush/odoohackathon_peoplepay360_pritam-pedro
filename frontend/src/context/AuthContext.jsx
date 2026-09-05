@@ -11,7 +11,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored token and user on mount
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
@@ -20,13 +19,11 @@ export const AuthProvider = ({ children }) => {
       try {
         setCurrentUser(JSON.parse(storedUser));
       } catch {
-        // Corrupted stored user — clear it
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
     }
-    
-    // Listen for unauthorized events to trigger logout
+
     const handleUnauthorized = () => logout();
     window.addEventListener('unauthorized', handleUnauthorized);
 
@@ -37,31 +34,30 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authApi.login({ email, password });
-      
-      // Backend returns: { data: { success: true, data: { token, user } } }
-      // Axios wraps in response.data, so we get: response.data = { success, data: { token, user } }
-      const responseData = response.data;
-      
-      // Handle both envelope formats for robustness
+
+      // After the api.js interceptor unwraps { success, data } → data,
+      // response.data is { token, user } directly.
+      // But handle both shapes defensively:
+      const payload = response.data;
       let tokenValue, userData;
-      if (responseData.data && responseData.data.token) {
-        // Standard backend envelope: { success: true, data: { token, user } }
-        tokenValue = responseData.data.token;
-        userData = responseData.data.user;
-      } else if (responseData.token) {
-        // Flat format fallback
-        tokenValue = responseData.token;
-        userData = responseData.user;
+
+      if (payload && payload.token) {
+        // Unwrapped shape: { token, user }
+        tokenValue = payload.token;
+        userData = payload.user;
+      } else if (payload && payload.data && payload.data.token) {
+        // Non-unwrapped shape fallback: { success, data: { token, user } }
+        tokenValue = payload.data.token;
+        userData = payload.data.user;
       } else {
-        return { success: false, error: 'Unexpected response format from server' };
+        return { success: false, error: 'Unexpected response format' };
       }
-      
+
       setToken(tokenValue);
       setCurrentUser(userData);
-      
       localStorage.setItem('token', tokenValue);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       return { success: true };
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message || 'Login failed';

@@ -27,9 +27,13 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors and standard responses
+// Response interceptor to handle errors and unwrap standard backend response envelope { success: true, data: ... }
 api.interceptors.response.use(
   (response) => {
+    // If backend returns standard envelope { success: true, data: ... }, unwrap data into response.data
+    if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data) {
+      response.data = response.data.data;
+    }
     return response;
   },
   (error) => {

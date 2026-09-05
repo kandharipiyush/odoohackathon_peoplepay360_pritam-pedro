@@ -50,7 +50,7 @@ const Attendance = () => {
   const fetchIntelligence = async () => {
     setLoadingIntelligence(true);
     try {
-      const res = await intelligenceApi.getAttendancePayrollImpact('101');
+      const res = await intelligenceApi.getAttendancePayrollImpact(currentUser?.employee_id || currentUser?.id || 1);
       setImpactData(res.data);
     } catch (err) {
       console.error(err);

@@ -37,8 +37,8 @@ function App() {
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           <ProtectedRoute>
             <MainLayout />
@@ -46,152 +46,162 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        
+
         {/* Employees Module */}
-        <Route 
-          path="employees" 
+        <Route
+          path="employees"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <Employees />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="employees/new" 
+        <Route
+          path="employees/new"
           element={
             <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
               <EmployeeForm />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="employees/:id" 
+        <Route
+          path="employees/:id"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <EmployeeProfile />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="employees/:id/edit" 
+        <Route
+          path="employees/:id/edit"
           element={
             <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Admin']}>
               <EmployeeForm />
             </RoleGuard>
-          } 
+          }
         />
-        
+
         {/* Contracts Module */}
-        <Route 
-          path="contracts" 
+        <Route
+          path="contracts"
           element={
-            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <Contracts />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="contracts/new" 
+        <Route
+          path="contracts/new"
           element={
             <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
               <ContractForm />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="contracts/:id/edit" 
+        {/* Task 6: Add missing /contracts/:id view route — reuse ContractForm in read-only style
+            or simply redirect to edit. Using Contracts with employeeId filter as view. */}
+        <Route
+          path="contracts/:id"
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
+              <ContractForm />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="contracts/:id/edit"
           element={
             <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
               <ContractForm />
             </RoleGuard>
-          } 
+          }
         />
-        
+
         {/* Attendance Module */}
-        <Route 
-          path="attendance" 
+        <Route
+          path="attendance"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <Attendance />
             </RoleGuard>
-          } 
+          }
         />
-        
+
         {/* Time Off Module */}
-        <Route 
-          path="timeoff" 
+        <Route
+          path="timeoff"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <TimeOff />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="time-off" 
+        <Route
+          path="time-off"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <TimeOff />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="time-off/allocations" 
+        <Route
+          path="time-off/allocations"
           element={
             <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
               <TimeOffAllocations />
             </RoleGuard>
-          } 
+          }
         />
-        
+
         {/* Payroll Module */}
-        <Route 
-          path="payroll" 
+        <Route
+          path="payroll"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <Payroll />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="payroll/payruns/create" 
+        <Route
+          path="payroll/payruns/create"
           element={
             <RoleGuard allowedRoles={['HR Payroll Manager', 'Admin']}>
               <PayrunCreate />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="payroll/payruns/:id" 
+        <Route
+          path="payroll/payruns/:id"
           element={
-            <RoleGuard allowedRoles={['HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+            <RoleGuard allowedRoles={['HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <PayrunDetails />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="payroll/payslips/:id" 
+        <Route
+          path="payroll/payslips/:id"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <PayslipDetails />
             </RoleGuard>
-          } 
+          }
         />
-        
-        <Route 
-          path="reports" 
+
+        <Route
+          path="reports"
           element={
-            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <Reports />
             </RoleGuard>
-          } 
+          }
         />
-        <Route 
-          path="reports/payroll" 
+        <Route
+          path="reports/payroll"
           element={
-            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <PayrollAnalytics />
             </RoleGuard>
-          } 
+          }
         />
       </Route>
     </Routes>

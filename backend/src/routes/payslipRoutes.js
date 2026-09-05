@@ -10,7 +10,7 @@ router.get('/', authenticateToken, payslipController.getAllPayslips);
 router.get(
   '/:id/pdf',
   authenticateToken,
-  authorizeRole('Admin', 'HR_Manager', 'HR_Payroll_Manager', 'HR_Payroll_User', 'Employee'),
+  authorizeRole('Admin', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Employee'),
   payslipController.getPayslipPDF
 );
 

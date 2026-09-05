@@ -74,7 +74,7 @@ const Payroll = () => {
     setLoadingRisk(true);
     try {
       const [riskRes, anomalyRes] = await Promise.all([
-        intelligenceApi.getPayrollRisk('101'), // simulating getting top risks
+        intelligenceApi.getPayrollRisk(currentUser?.employee_id || currentUser?.id || 1), // getting current user risk profile
         intelligenceApi.getPayrollAnomalies()
       ]);
       setRiskData([riskRes.data]); // Wrap in array for the table component

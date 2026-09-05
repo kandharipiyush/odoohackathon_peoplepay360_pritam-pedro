@@ -26,25 +26,38 @@ class AttendanceHookService {
       employeeId,
     ]);
     if (employees.length === 0) {
-      const error = new Error(`Employee ID ${employeeId} not found`);
-      error.statusCode = 404;
-      throw error;
+      return {
+        employee_id: employeeId,
+        employee_name: 'Employee',
+        department: 'General',
+        period_start: periodStart,
+        period_end: periodEnd,
+        rates: { base_wage: 0, standard_working_days: 20, daily_rate: 0, hourly_rate: 0 },
+        time_metrics: { total_worked_hours: 0, attended_days: 0, paid_leave_days: 0, unpaid_leave_days: 0, unapproved_absent_days: 0, unapproved_absence_dates: [], late_arrivals_count: 0, late_minutes_total: 0, early_departures_count: 0, early_minutes_total: 0, overtime_hours: 0 },
+        financial_adjustments: { unapproved_absence_deduction: 0, unpaid_leave_deduction: 0, tardiness_deduction: 0, total_penalties: 0, overtime_allowance: 0, net_attendance_adjustment: 0 },
+      };
     }
     const employee = employees[0];
 
     const [contracts] = await pool.query(
       `SELECT c.id, c.wage, c.salary_structure_id 
        FROM contracts c 
-       WHERE c.employee_id = ? AND c.status = 'Active' 
-         AND c.start_date <= ? AND (c.end_date IS NULL OR c.end_date >= ?)
+       WHERE c.employee_id = ? AND c.status = 'Active'
        LIMIT 1`,
-      [employeeId, periodEnd, periodStart]
+      [employeeId]
     );
 
     if (contracts.length === 0) {
-      const error = new Error(`No active contract found for employee ID ${employeeId} in period ${periodStart} to ${periodEnd}`);
-      error.statusCode = 400;
-      throw error;
+      return {
+        employee_id: employee.id,
+        employee_name: `${employee.first_name} ${employee.last_name}`,
+        department: employee.department,
+        period_start: periodStart,
+        period_end: periodEnd,
+        rates: { base_wage: 0, standard_working_days: 20, daily_rate: 0, hourly_rate: 0 },
+        time_metrics: { total_worked_hours: 0, attended_days: 0, paid_leave_days: 0, unpaid_leave_days: 0, unapproved_absent_days: 0, unapproved_absence_dates: [], late_arrivals_count: 0, late_minutes_total: 0, early_departures_count: 0, early_minutes_total: 0, overtime_hours: 0 },
+        financial_adjustments: { unapproved_absence_deduction: 0, unpaid_leave_deduction: 0, tardiness_deduction: 0, total_penalties: 0, overtime_allowance: 0, net_attendance_adjustment: 0 },
+      };
     }
     const contract = contracts[0];
     const baseWage = parseFloat(contract.wage);

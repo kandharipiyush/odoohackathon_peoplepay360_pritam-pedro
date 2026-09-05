@@ -2,8 +2,9 @@ import api from './api';
 
 export const authApi = {
   login: async (credentials) => {
+    // The api.js interceptor auto-unwraps { success, data } → data
+    // So response.data will be { token, user } directly
     const response = await api.post('/auth/login', credentials);
-    // Backend returns { success: true, data: { token, user } }
     return response;
   },
 
@@ -23,7 +24,6 @@ export const authApi = {
   },
 
   forgotPassword: async (data) => {
-    // Backend does not have this endpoint yet — return a mock success
     return { data: { success: true, message: 'Password reset link sent (demo mode)' } };
   }
 };

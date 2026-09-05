@@ -17,7 +17,8 @@ const CheckInOutWidget = ({ onStatusChange }) => {
   const fetchTodayStatus = async () => {
     setLoading(true);
     try {
-      const res = await attendanceApi.getEmployeeAttendance(currentUser.id);
+      const empId = currentUser.employee_id || currentUser.id;
+      const res = await attendanceApi.getEmployeeAttendance(empId);
       const today = new Date().toISOString().split('T')[0];
       const todayRecord = res.data.find(r => r.date === today);
       setRecord(todayRecord || null);
@@ -30,7 +31,8 @@ const CheckInOutWidget = ({ onStatusChange }) => {
 
   const handleCheckIn = async () => {
     try {
-      const res = await attendanceApi.checkIn({ employeeId: currentUser.id });
+      const empId = currentUser.employee_id || currentUser.id;
+      const res = await attendanceApi.checkIn({ employeeId: empId });
       setRecord(res.data);
       if (onStatusChange) onStatusChange();
     } catch (err) {
@@ -40,7 +42,8 @@ const CheckInOutWidget = ({ onStatusChange }) => {
 
   const handleCheckOut = async () => {
     try {
-      const res = await attendanceApi.checkOut({ employeeId: currentUser.id });
+      const empId = currentUser.employee_id || currentUser.id;
+      const res = await attendanceApi.checkOut({ employeeId: empId });
       setRecord(res.data);
       if (onStatusChange) onStatusChange();
     } catch (err) {
