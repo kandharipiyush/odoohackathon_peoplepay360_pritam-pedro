@@ -65,9 +65,11 @@ export const timeOffApi = {
   createRequest: async (data) => {
     const payload = {
       employee_id: data.employeeId || data.employee_id,
-      leave_type_id: data.leave_type_id || 1,
+      leave_type_id: data.leave_type_id || data.leaveTypeId || data.leaveType,
+      leaveType: data.leaveType || data.leave_type,
       start_date: data.startDate || data.start_date,
       end_date: data.endDate || data.end_date,
+      duration: parseFloat(data.duration || data.number_of_days || 1),
       number_of_days: parseFloat(data.duration || data.number_of_days || 1),
       reason: data.reason || '',
     };
@@ -84,15 +86,18 @@ export const timeOffApi = {
 
   getAllocations: async (params) => {
     const res = await api.get('/time-off/allocations', { params });
-    const raw = Array.isArray(res.data) ? res.data : [];
+    const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
     res.data = raw.map(a => ({
       ...a,
       id: a.id,
-      employeeName: a.employee_name || `${a.first_name || ''} ${a.last_name || ''}`.trim() || 'Employee',
-      leaveType: a.leave_type_name || 'Annual Leave',
-      allocatedDays: parseFloat(a.total_days || 0),
-      usedDays: parseFloat(a.taken_days || 0),
-      remainingDays: Math.max(0, parseFloat(a.total_days || 0) - parseFloat(a.taken_days || 0))
+      employeeId: a.employee_id ? `EMP-${a.employee_id}` : (a.employeeId || 'EMP-001'),
+      rawEmployeeId: a.employee_id || a.employeeId,
+      employeeName: a.employee_name || `${a.first_name || ''} ${a.last_name || ''}`.trim() || `Employee ${a.employee_id || ''}`,
+      leaveType: a.leave_type_name || a.leaveType || 'Annual Leave',
+      allocatedDays: parseFloat(a.total_days ?? a.allocatedDays ?? 0),
+      usedDays: parseFloat(a.taken_days ?? a.usedDays ?? 0),
+      remainingDays: Math.max(0, parseFloat(a.total_days ?? a.allocatedDays ?? 0) - parseFloat(a.taken_days ?? a.usedDays ?? 0)),
+      validUntil: a.validity_end ? String(a.validity_end).split('T')[0] : (a.validUntil || '2026-12-31')
     }));
     return res;
   },

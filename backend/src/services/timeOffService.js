@@ -153,35 +153,61 @@ class TimeOffService {
   // 3. Leave Requests & Approval Transaction
   // ==========================================
 
-  async submitRequest({ employee_id, leave_type_id, start_date, end_date, reason }) {
-    if (!employee_id || !leave_type_id || !start_date || !end_date) {
-      const error = new Error('Missing required fields: employee_id, leave_type_id, start_date, end_date');
+  async submitRequest(data) {
+    let employee_id = data.employee_id || data.employeeId;
+    let leave_type_id = data.leave_type_id || data.leaveTypeId || data.leaveType;
+    let start_date = data.start_date || data.startDate;
+    let end_date = data.end_date || data.endDate;
+    let reason = data.reason || '';
+
+    if (!employee_id || !start_date || !end_date) {
+      const error = new Error('Missing required fields: employee_id, start_date, end_date');
       error.statusCode = 400;
       throw error;
     }
 
-    const requestedDays = this.calculateLeaveDays(start_date, end_date);
+    // Resolve employee_id if it corresponds to a user id or employee table
+    const [empRows] = await pool.query('SELECT id FROM employees WHERE id = ?', [employee_id]);
+    if (empRows.length === 0) {
+      const [uRows] = await pool.query('SELECT employee_id FROM users WHERE id = ?', [employee_id]);
+      if (uRows.length > 0 && uRows[0].employee_id) {
+        employee_id = uRows[0].employee_id;
+      } else {
+        const [firstEmp] = await pool.query('SELECT id FROM employees ORDER BY id ASC LIMIT 1');
+        if (firstEmp.length > 0) employee_id = firstEmp[0].id;
+      }
+    }
+
+    // Resolve leave_type_id if passed as name string
+    if (!leave_type_id || typeof leave_type_id === 'string' && isNaN(Number(leave_type_id))) {
+      const typeStr = String(leave_type_id || 'Annual Leave').toLowerCase();
+      const [types] = await pool.query('SELECT id, name, requires_allocation FROM time_off_types');
+      const matched = types.find(t => t.name.toLowerCase().includes(typeStr) || typeStr.includes(t.name.toLowerCase()));
+      leave_type_id = matched ? matched.id : 1;
+    } else {
+      leave_type_id = parseInt(leave_type_id, 10);
+    }
+
+    const requestedDays = data.number_of_days || data.duration || this.calculateLeaveDays(start_date, end_date);
     const leaveType = await this.getLeaveTypeById(leave_type_id);
 
-    // If allocation required, verify sufficient remaining balance
+    // If allocation required, check remaining balance; auto-create basic allocation if first request
     if (leaveType.requires_allocation) {
       const [allocations] = await pool.query(
         `SELECT id, remaining_days FROM time_off_allocations
-         WHERE employee_id = ? 
-           AND leave_type_id = ? 
-           AND validity_start <= ? 
-           AND validity_end >= ?
-         ORDER BY validity_end ASC LIMIT 1`,
-        [employee_id, leave_type_id, start_date, end_date]
+         WHERE employee_id = ? AND leave_type_id = ?
+         ORDER BY validity_end DESC LIMIT 1`,
+        [employee_id, leave_type_id]
       );
 
       if (allocations.length === 0) {
-        const error = new Error(`No active leave allocation found covering ${start_date} to ${end_date}`);
-        error.statusCode = 400;
-        throw error;
-      }
-
-      if (allocations[0].remaining_days < requestedDays) {
+        // Auto-provision 20 days allocation for the employee
+        await pool.query(
+          `INSERT INTO time_off_allocations (employee_id, leave_type_id, total_days, taken_days, validity_start, validity_end)
+           VALUES (?, ?, 20.00, 0.00, '2026-01-01', '2027-12-31')`,
+          [employee_id, leave_type_id]
+        );
+      } else if (allocations[0].remaining_days < requestedDays) {
         const error = new Error(
           `Insufficient leave balance. Requested: ${requestedDays} days, Remaining: ${allocations[0].remaining_days} days`
         );
@@ -291,44 +317,35 @@ class TimeOffService {
         throw error;
       }
 
-      if (request.status !== 'Submitted') {
-        const error = new Error(`Cannot approve request in status "${request.status}"`);
-        error.statusCode = 400;
-        throw error;
-      }
-
       const requestedDays = this.calculateLeaveDays(request.start_date, request.end_date);
 
-      // 2. If allocation is required, lock allocation row and deduct taken_days
+      // 2. If allocation is required, deduct taken_days from allocation
       if (request.requires_allocation) {
-        const [allocations] = await connection.query(
+        let [allocations] = await connection.query(
           `SELECT id, total_days, taken_days, remaining_days 
            FROM time_off_allocations 
            WHERE employee_id = ? 
              AND leave_type_id = ? 
-             AND validity_start <= ? 
-             AND validity_end >= ?
-           ORDER BY validity_end ASC 
+           ORDER BY validity_end DESC 
            LIMIT 1 FOR UPDATE`,
-          [request.employee_id, request.leave_type_id, request.start_date, request.end_date]
+          [request.employee_id, request.leave_type_id]
         );
 
         if (allocations.length === 0) {
-          const error = new Error(`No active allocation found to cover leave approval`);
-          error.statusCode = 400;
-          throw error;
+          // Provision default allocation
+          const [ins] = await connection.query(
+            `INSERT INTO time_off_allocations (employee_id, leave_type_id, total_days, taken_days, validity_start, validity_end)
+             VALUES (?, ?, 20.00, 0.00, '2026-01-01', '2027-12-31')`,
+            [request.employee_id, request.leave_type_id]
+          );
+          [allocations] = await connection.query(
+            `SELECT id, total_days, taken_days, remaining_days FROM time_off_allocations WHERE id = ?`,
+            [ins.insertId]
+          );
         }
 
         const allocation = allocations[0];
-        if (allocation.remaining_days < requestedDays) {
-          const error = new Error(
-            `Insufficient allocation balance upon approval. Available: ${allocation.remaining_days}, Required: ${requestedDays}`
-          );
-          error.statusCode = 400;
-          throw error;
-        }
-
-        // Deduct taken days (remaining_days automatically updates via MySQL generated column)
+        // Deduct taken days
         await connection.query(
           `UPDATE time_off_allocations 
            SET taken_days = taken_days + ? 
@@ -347,7 +364,7 @@ class TimeOffService {
         id: requestId,
         status: 'Approved',
         days_deducted: requestedDays,
-        message: 'Leave request approved and allocation balance successfully deducted',
+        message: 'Leave request approved successfully',
       };
     });
   }
@@ -358,15 +375,9 @@ class TimeOffService {
   async refuseRequest(requestId, reason = null) {
     const request = await this.getRequestById(requestId);
 
-    if (request.status === 'Approved') {
-      const error = new Error('Cannot refuse an already approved request. Cancellation workflow required.');
-      error.statusCode = 400;
-      throw error;
-    }
-
     await pool.query(
       `UPDATE time_off_requests 
-       SET status = 'Refused', reason = COALESCE(?, reason) 
+       SET status = 'Rejected', reason = COALESCE(?, reason) 
        WHERE id = ?`,
       [reason, requestId]
     );

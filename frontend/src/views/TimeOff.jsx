@@ -2,26 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { timeOffApi } from '../services/timeOffApi';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
 import Modal from '../components/common/Modal';
-import { Clock, Plus } from 'lucide-react';
+import { Clock, Plus, Check, X, CheckCircle, XCircle } from 'lucide-react';
 
 const TimeOff = () => {
   const [searchParams] = useSearchParams();
   const employeeIdFilter = searchParams.get('employeeId');
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const [balances, setBalances] = useState({});
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({
-    leaveType: 'Annual Leave',
+    leaveType: 'Paid Annual Leave',
     startDate: '',
     endDate: '',
     duration: '',
@@ -29,18 +33,23 @@ const TimeOff = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  const targetId = employeeIdFilter || currentUser.id;
-  const canManage = ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const canManage = userRole.includes('hr') || userRole.includes('admin') || userRole.includes('payroll') || userRole.includes('auditor');
+  const targetId = employeeIdFilter || (canManage ? null : (currentUser?.employee_id || currentUser?.id));
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const balanceTarget = employeeIdFilter || currentUser?.employee_id || currentUser?.id || 1;
+      const requestParams = targetId ? { employee_id: targetId } : {};
+
       const [balRes, reqRes] = await Promise.all([
-        timeOffApi.getBalances(targetId),
-        timeOffApi.getRequests({ employeeId: targetId })
+        timeOffApi.getBalances(balanceTarget),
+        timeOffApi.getRequests(requestParams)
       ]);
-      setBalances(balRes.data);
-      setRequests(reqRes.data);
+      setBalances(balRes.data || {});
+      const reqList = Array.isArray(reqRes.data) ? reqRes.data : (reqRes.data?.data || []);
+      setRequests(reqList);
     } catch (err) {
       console.error(err);
     } finally {
@@ -60,22 +69,71 @@ const TimeOff = () => {
     }
     setSaving(true);
     try {
-      await timeOffApi.createRequest({ ...requestForm, employeeId: currentUser.id });
+      const empId = currentUser?.employee_id || currentUser?.id || 1;
+      await timeOffApi.createRequest({ ...requestForm, employeeId: empId });
+      addToast('Leave request submitted successfully.', 'success');
       setIsRequestModalOpen(false);
+      setRequestForm({
+        leaveType: 'Paid Annual Leave',
+        startDate: '',
+        endDate: '',
+        duration: '',
+        reason: ''
+      });
       fetchData();
     } catch (err) {
-      alert('Failed to submit request');
+      const msg = err.response?.data?.error || err.message || 'Failed to submit request';
+      alert(msg);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleApprove = async (id) => {
+    setActionLoadingId(id);
+    try {
+      await timeOffApi.approveRequest(id);
+      addToast('Leave request approved successfully.', 'success');
+      fetchData();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Failed to approve request';
+      alert(msg);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleReject = async (id) => {
+    const reason = window.prompt('Enter reason for denial / rejection (optional):', 'Schedule conflict');
+    if (reason === null) return; // User cancelled prompt
+
+    setActionLoadingId(id);
+    try {
+      await timeOffApi.rejectRequest(id, { reason });
+      addToast('Leave request denied / rejected.', 'warning');
+      fetchData();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Failed to reject request';
+      alert(msg);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const getStatusColor = (status) => {
     if (status === 'Approved') return 'var(--color-status-success)';
-    if (status === 'Rejected') return 'var(--color-status-error)';
-    if (status === 'Pending') return 'var(--color-status-warning)';
+    if (status === 'Rejected' || status === 'Refused') return 'var(--color-status-error)';
+    if (status === 'Pending' || status === 'Submitted') return 'var(--color-status-warning)';
     return 'var(--color-text-secondary)';
   };
+
+  const filteredRequests = requests.filter(r => {
+    if (statusFilter === 'ALL') return true;
+    if (statusFilter === 'PENDING') return r.status === 'Submitted' || r.status === 'Pending';
+    if (statusFilter === 'APPROVED') return r.status === 'Approved';
+    if (statusFilter === 'REJECTED') return r.status === 'Rejected' || r.status === 'Refused';
+    return true;
+  });
 
   if (loading) return <Loader fullScreen />;
 
@@ -87,7 +145,9 @@ const TimeOff = () => {
           {employeeIdFilter ? (
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Viewing Time Off for Employee ID: {employeeIdFilter}</p>
           ) : (
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Manage your balances and requests</p>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
+              {canManage ? 'Review employee leave requests & manage balances' : 'Manage your balances and requests'}
+            </p>
           )}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -96,11 +156,9 @@ const TimeOff = () => {
               Manage Allocations
             </Button>
           )}
-          {(!employeeIdFilter || employeeIdFilter == currentUser.id) && (
-            <Button variant="primary" onClick={() => setIsRequestModalOpen(true)}>
-              <Plus size={16} style={{ marginRight: '8px' }} /> Request Leave
-            </Button>
-          )}
+          <Button variant="primary" onClick={() => setIsRequestModalOpen(true)}>
+            <Plus size={16} style={{ marginRight: '8px' }} /> Request Leave
+          </Button>
         </div>
       </div>
 
@@ -127,41 +185,133 @@ const TimeOff = () => {
         )}
       </div>
 
-      <h2 style={{ fontSize: '18px', marginBottom: 'var(--spacing-2)' }}>Request History</h2>
-      {requests.length === 0 ? (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)', flexWrap: 'wrap', gap: '12px' }}>
+        <h2 style={{ fontSize: '18px', margin: 0 }}>
+          {canManage ? 'Employee Leave Requests' : 'Request History'} ({filteredRequests.length})
+        </h2>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setStatusFilter(filter)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border)',
+                background: statusFilter === filter ? 'var(--color-btn-primary)' : 'var(--color-bg-card)',
+                color: statusFilter === filter ? '#FFFFFF' : 'var(--color-text-secondary)',
+                fontSize: '12px',
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
+              {filter === 'ALL' ? 'All' : filter === 'PENDING' ? 'Pending Approval' : filter === 'APPROVED' ? 'Approved' : 'Denied'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filteredRequests.length === 0 ? (
         <Card>
-          <EmptyState icon={Clock} title="No Requests Found" description="You haven't made any time off requests yet." />
+          <EmptyState icon={Clock} title="No Requests Found" description="There are no time off requests matching the selected filter." />
         </Card>
       ) : (
         <Card style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-main)' }}>
+                {canManage && <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>EMPLOYEE</th>}
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>TYPE</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>DATES</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>DURATION</th>
+                <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>REASON</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>SUBMITTED</th>
                 <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>STATUS</th>
+                {canManage && <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500, textAlign: 'right' }}>ACTIONS</th>}
               </tr>
             </thead>
             <tbody>
-              {requests.map(r => (
-                <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>{r.leaveType}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.startDate} to {r.endDate}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.duration} days</td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.submittedDate}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{ 
-                      fontSize: '12px', padding: '4px 8px', borderRadius: '12px', fontWeight: 500,
-                      backgroundColor: getStatusColor(r.status) + '20', 
-                      color: getStatusColor(r.status) 
-                    }}>
-                      {r.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {filteredRequests.map(r => {
+                const isPending = r.status === 'Submitted' || r.status === 'Pending';
+                const isActing = actionLoadingId === r.id;
+
+                return (
+                  <tr key={r.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    {canManage && (
+                      <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>
+                        <div>{r.employee_name || r.employeeName || `Employee ${r.employee_id || r.employeeId}`}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{r.department || 'Staff'}</div>
+                      </td>
+                    )}
+                    <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>{r.leaveType}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.startDate} to {r.endDate}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.duration} days</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>{r.reason || '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{r.submittedDate}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ 
+                        fontSize: '12px', padding: '4px 8px', borderRadius: '12px', fontWeight: 500,
+                        backgroundColor: getStatusColor(r.status) + '20', 
+                        color: getStatusColor(r.status) 
+                      }}>
+                        {r.status}
+                      </span>
+                    </td>
+                    {canManage && (
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        {isPending ? (
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => handleApprove(r.id)}
+                              disabled={isActing}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#10B981',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 500
+                              }}
+                              title="Approve Leave Request"
+                            >
+                              <Check size={14} /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject(r.id)}
+                              disabled={isActing}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: '#EF4444',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 500
+                              }}
+                              title="Deny / Refuse Leave Request"
+                            >
+                              <X size={14} /> Deny
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                            {r.status === 'Approved' ? '✓ Approved' : '✗ Denied'}
+                          </span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </Card>
@@ -176,9 +326,10 @@ const TimeOff = () => {
               value={requestForm.leaveType} 
               onChange={e => setRequestForm({...requestForm, leaveType: e.target.value})}
             >
-              <option value="Annual Leave">Annual Leave</option>
+              <option value="Paid Annual Leave">Paid Annual Leave</option>
               <option value="Sick Leave">Sick Leave</option>
               <option value="Unpaid Leave">Unpaid Leave</option>
+              <option value="Compensatory Off">Compensatory Off</option>
             </select>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
