@@ -109,6 +109,7 @@ router.post('/login', async (req, res, next) => {
  * Register a new user with bcrypt-hashed password
  */
 router.post('/register', async (req, res, next) => {
+  console.log("fhgfykftyfdkytfyktdyt")
   try {
     const { email, password, firstName, lastName, department, job_position, role } = req.body;
 

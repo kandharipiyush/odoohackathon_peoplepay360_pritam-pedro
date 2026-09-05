@@ -46,6 +46,7 @@ const EmployeeForm = () => {
   };
 
   const handleSubmit = async (e) => {
+    debugger;
     e.preventDefault();
     setError('');
     setSuccess('');
