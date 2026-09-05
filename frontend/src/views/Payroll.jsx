@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { payrollApi } from '../services/payrollApi';
+import { intelligenceApi } from '../services/intelligenceApi';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
-import { FileText, Plus, Eye, Search, Play } from 'lucide-react';
+import { FileText, Plus, Eye, Search, Play, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+import PayrollRiskTable from '../components/intelligence/PayrollRiskTable';
+import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
+
 const Payroll = () => {
-  const [activeTab, setActiveTab] = useState('payruns'); // 'payruns' or 'payslips'
+  const [activeTab, setActiveTab] = useState('payruns'); // 'payruns', 'payslips', 'risk'
   const { currentUser } = useAuth();
   
   // Payrun State
@@ -23,6 +27,11 @@ const Payroll = () => {
   const [loadingPayslips, setLoadingPayslips] = useState(false);
   const [payslipSearch, setPayslipSearch] = useState('');
 
+  // Risk State
+  const [riskData, setRiskData] = useState([]);
+  const [anomalies, setAnomalies] = useState([]);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+
   const canManagePayroll = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
 
   useEffect(() => {
@@ -30,6 +39,8 @@ const Payroll = () => {
       fetchPayruns();
     } else if (activeTab === 'payslips') {
       fetchPayslips();
+    } else if (activeTab === 'risk' && canManagePayroll) {
+      fetchRiskData();
     }
   }, [activeTab]);
 
@@ -58,8 +69,24 @@ const Payroll = () => {
     }
   };
 
+  const fetchRiskData = async () => {
+    setLoadingRisk(true);
+    try {
+      const [riskRes, anomalyRes] = await Promise.all([
+        intelligenceApi.getPayrollRisk('101'), // simulating getting top risks
+        intelligenceApi.getPayrollAnomalies()
+      ]);
+      setRiskData([riskRes.data]); // Wrap in array for the table component
+      setAnomalies(anomalyRes.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingRisk(false);
+    }
+  };
+
   const handleBulkEmail = async () => {
-    const selected = payslips.map(p => p.id); // Simulating all for now
+    const selected = payslips.map(p => p.id); 
     if (window.confirm(`Are you sure you want to email ${selected.length} payslips?`)) {
       await payrollApi.bulkEmailPayslips(selected);
       alert('Payslips emailed successfully.');
@@ -197,6 +224,20 @@ const Payroll = () => {
     );
   };
 
+  const renderRisk = () => {
+    if (loadingRisk) return <Loader />;
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 'var(--spacing-3)', alignItems: 'start' }}>
+        <div>
+          <PayrollRiskTable risks={riskData} />
+        </div>
+        <div>
+          <AnomalyAlerts anomalies={anomalies} />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       <h1 style={{ fontSize: '24px', marginBottom: 'var(--spacing-3)' }}>Payroll Management</h1>
@@ -204,21 +245,31 @@ const Payroll = () => {
       <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-3)' }}>
         {canManagePayroll && (
           <button 
-            style={{ padding: '12px 24px', background: 'none', borderBottom: activeTab === 'payruns' ? '2px solid var(--color-text-primary)' : '2px solid transparent', color: activeTab === 'payruns' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: activeTab === 'payruns' ? 600 : 400 }}
+            style={{ padding: '12px 24px', background: 'none', borderBottom: activeTab === 'payruns' ? '2px solid var(--color-btn-primary)' : '2px solid transparent', color: activeTab === 'payruns' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: activeTab === 'payruns' ? 600 : 400 }}
             onClick={() => setActiveTab('payruns')}
           >
             Payruns
           </button>
         )}
         <button 
-          style={{ padding: '12px 24px', background: 'none', borderBottom: activeTab === 'payslips' ? '2px solid var(--color-text-primary)' : '2px solid transparent', color: activeTab === 'payslips' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: activeTab === 'payslips' ? 600 : 400 }}
+          style={{ padding: '12px 24px', background: 'none', borderBottom: activeTab === 'payslips' ? '2px solid var(--color-btn-primary)' : '2px solid transparent', color: activeTab === 'payslips' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: activeTab === 'payslips' ? 600 : 400 }}
           onClick={() => setActiveTab('payslips')}
         >
           Payslips
         </button>
+        {canManagePayroll && (
+          <button 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'none', borderBottom: activeTab === 'risk' ? '2px solid var(--color-btn-primary)' : '2px solid transparent', color: activeTab === 'risk' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', fontWeight: activeTab === 'risk' ? 600 : 400 }}
+            onClick={() => setActiveTab('risk')}
+          >
+            <ShieldAlert size={16} /> Risk & Anomalies
+          </button>
+        )}
       </div>
 
-      {activeTab === 'payruns' ? renderPayruns() : renderPayslips()}
+      {activeTab === 'payruns' && renderPayruns()}
+      {activeTab === 'payslips' && renderPayslips()}
+      {activeTab === 'risk' && renderRisk()}
     </div>
   );
 };

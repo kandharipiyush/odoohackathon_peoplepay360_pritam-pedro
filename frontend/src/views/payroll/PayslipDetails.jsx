@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { payrollApi } from '../../services/payrollApi';
+import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import { Printer, Download, Mail, ArrowLeft, Building, User } from 'lucide-react';
+import ExplainableAuditor from '../../components/intelligence/ExplainableAuditor';
 
 const PayslipDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  
   const [payslip, setPayslip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const canViewAudit = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
 
   useEffect(() => {
     const fetchPayslip = async () => {
@@ -56,6 +62,12 @@ const PayslipDetails = () => {
           <Button variant="primary" onClick={handleEmail} disabled={actionLoading}><Mail size={16} style={{ marginRight: '8px' }} /> Email</Button>
         </div>
       </div>
+
+      {canViewAudit && (
+        <div style={{ marginBottom: 'var(--spacing-4)' }}>
+          <ExplainableAuditor payslipId={id} />
+        </div>
+      )}
 
       <Card id="printable-payslip" style={{ padding: 'var(--spacing-5)', borderTop: '8px solid var(--color-btn-primary)' }}>
         {/* Header */}

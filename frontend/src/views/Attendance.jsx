@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { attendanceApi } from '../services/attendanceApi';
+import { intelligenceApi } from '../services/intelligenceApi';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/common/Card';
 import Loader from '../components/common/Loader';
@@ -8,6 +9,10 @@ import EmptyState from '../components/common/EmptyState';
 import CheckInOutWidget from '../components/attendance/CheckInOutWidget';
 import ExceptionReview from '../components/attendance/ExceptionReview';
 import { CalendarCheck, AlertCircle } from 'lucide-react';
+
+import AttendanceHealthCard from '../components/intelligence/AttendanceHealthCard';
+import PayrollImpactCard from '../components/intelligence/PayrollImpactCard';
+import MismatchAlerts from '../components/intelligence/MismatchAlerts';
 
 const Attendance = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +23,10 @@ const Attendance = () => {
   const [loading, setLoading] = useState(true);
   const [showExceptions, setShowExceptions] = useState(false);
   
+  // Intelligence State
+  const [impactData, setImpactData] = useState(null);
+  const [loadingIntelligence, setLoadingIntelligence] = useState(false);
+
   const canReview = ['Admin', 'HR Manager'].includes(currentUser?.role);
 
   const fetchAttendance = async () => {
@@ -38,8 +47,23 @@ const Attendance = () => {
     }
   };
 
+  const fetchIntelligence = async () => {
+    setLoadingIntelligence(true);
+    try {
+      const res = await intelligenceApi.getAttendancePayrollImpact('101');
+      setImpactData(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingIntelligence(false);
+    }
+  };
+
   useEffect(() => {
     fetchAttendance();
+    if (canReview) {
+      fetchIntelligence();
+    }
   }, [employeeIdFilter, currentUser]);
 
   const summary = {
@@ -72,6 +96,19 @@ const Attendance = () => {
           </button>
         )}
       </div>
+
+      {/* Intelligence Section for HR */}
+      {canReview && !loadingIntelligence && impactData && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-3)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+            <AttendanceHealthCard impact={impactData} />
+            <MismatchAlerts mismatches={impactData.mismatches} />
+          </div>
+          <div>
+            <PayrollImpactCard impact={impactData} />
+          </div>
+        </div>
+      )}
 
       {currentUser.role === 'Employee' && (
         <CheckInOutWidget onStatusChange={fetchAttendance} />
