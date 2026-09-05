@@ -113,6 +113,7 @@ router.post('/register', async (req, res, next) => {
     const { email, password, firstName, lastName, department, job_position, role } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
+      debugger;
       return res.status(400).json({
         success: false,
         error: 'email, password, firstName, and lastName are required',

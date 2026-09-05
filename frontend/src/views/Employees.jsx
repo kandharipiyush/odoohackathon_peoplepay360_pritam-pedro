@@ -7,10 +7,17 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
+import EmployeeProfile from './EmployeeProfile';
 
 const Employees = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // For regular Employees, show their own profile directly instead of directory
+  if (currentUser?.role === 'Employee') {
+    return <EmployeeProfile />;
+  }
+
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

@@ -26,7 +26,7 @@ const Sidebar = () => {
       case 'Employee':
         return [
           ...baseItems,
-          { name: 'My Profile', path: '/employees', icon: <Users size={20} /> },
+          { name: 'My Profile', path: '/profile', icon: <Users size={20} /> },
           { name: 'My Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
           { name: 'My Time Off', path: '/timeoff', icon: <Clock size={20} /> },
           { name: 'My Payslips', path: '/payroll', icon: <DollarSign size={20} /> },

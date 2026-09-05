@@ -47,6 +47,16 @@ function App() {
       >
         <Route index element={<Dashboard />} />
 
+        {/* Profile Module */}
+        <Route
+          path="profile"
+          element={
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
+              <EmployeeProfile />
+            </RoleGuard>
+          }
+        />
+
         {/* Employees Module */}
         <Route
           path="employees"

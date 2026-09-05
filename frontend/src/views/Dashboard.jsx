@@ -19,6 +19,7 @@ const Dashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   
+  const [period, setPeriod] = useState('this_month');
   const [forecastData, setForecastData] = useState(null);
   const [kpiData, setKpiData] = useState(null);
   const [riskOverview, setRiskOverview] = useState(null);
@@ -26,16 +27,16 @@ const Dashboard = () => {
   const [anomalies, setAnomalies] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = async (selectedPeriod = period) => {
     setLoading(true);
     try {
       if (['Admin', 'HR Manager', 'HR Payroll Manager'].includes(currentUser?.role)) {
         const [forecastRes, kpiRes, riskRes, impactRes, anomaliesRes] = await Promise.all([
-          intelligenceApi.getPayrollForecast(),
-          intelligenceApi.getDashboardKPIs(),
-          intelligenceApi.getRiskOverview(),
-          intelligenceApi.getAttendancePayrollImpact(currentUser?.employee_id || currentUser?.id || 1),
-          intelligenceApi.getPayrollAnomalies()
+          intelligenceApi.getPayrollForecast({ period: selectedPeriod }),
+          intelligenceApi.getDashboardKPIs(selectedPeriod),
+          intelligenceApi.getRiskOverview(selectedPeriod),
+          intelligenceApi.getAttendancePayrollImpact(currentUser?.employee_id || currentUser?.id || 1, selectedPeriod),
+          intelligenceApi.getPayrollAnomalies({ period: selectedPeriod })
         ]);
         setForecastData(forecastRes.data);
         setKpiData(kpiRes.data);
@@ -51,7 +52,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(period);
   }, [currentUser]);
 
   const lifecycleStages = [
@@ -75,12 +76,30 @@ const Dashboard = () => {
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Enterprise HR & Payroll Operations</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <select style={{ width: 'auto', padding: '8px 12px' }}>
-            <option>This Month</option>
-            <option>Last Month</option>
-            <option>Q1 2024</option>
+          <select 
+            value={period} 
+            onChange={(e) => {
+              const newPeriod = e.target.value;
+              setPeriod(newPeriod);
+              fetchData(newPeriod);
+            }}
+            style={{ 
+              width: 'auto', 
+              padding: '8px 12px', 
+              borderRadius: 'var(--radius-sm)', 
+              border: '1px solid var(--color-border)', 
+              backgroundColor: 'var(--color-bg-card)', 
+              color: 'var(--color-text-primary)', 
+              fontWeight: 500, 
+              cursor: 'pointer' 
+            }}
+          >
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="q3_2026">Q3 2026</option>
+            <option value="ytd">Year to Date</option>
           </select>
-          <Button variant="secondary" onClick={fetchData}>
+          <Button variant="secondary" onClick={() => fetchData(period)}>
             <RefreshCw size={16} style={{ marginRight: '8px' }} /> Refresh
           </Button>
         </div>
