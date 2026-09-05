@@ -14,8 +14,9 @@ import PayrollRiskTable from '../components/intelligence/PayrollRiskTable';
 import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
 
 const Payroll = () => {
-  const [activeTab, setActiveTab] = useState('payruns'); // 'payruns', 'payslips', 'risk'
   const { currentUser } = useAuth();
+  const canManagePayroll = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
+  const [activeTab, setActiveTab] = useState(canManagePayroll ? 'payruns' : 'payslips'); // 'payruns', 'payslips', 'risk'
   
   // Payrun State
   const [payruns, setPayruns] = useState([]);
@@ -33,8 +34,6 @@ const Payroll = () => {
   const [anomalies, setAnomalies] = useState([]);
   const [loadingRisk, setLoadingRisk] = useState(false);
 
-  const canManagePayroll = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
-
   useEffect(() => {
     if (activeTab === 'payruns' && canManagePayroll) {
       fetchPayruns();
@@ -43,7 +42,7 @@ const Payroll = () => {
     } else if (activeTab === 'risk' && canManagePayroll) {
       fetchRiskData();
     }
-  }, [activeTab]);
+  }, [activeTab, canManagePayroll]);
 
   const fetchPayruns = async () => {
     setLoadingPayruns(true);
@@ -243,7 +242,9 @@ const Payroll = () => {
 
   return (
     <div>
-      <h1 style={{ fontSize: '24px', marginBottom: 'var(--spacing-3)' }}>Payroll Management</h1>
+      <h1 style={{ fontSize: '24px', marginBottom: 'var(--spacing-3)' }}>
+        {canManagePayroll ? 'Payroll Management' : 'My Payslips'}
+      </h1>
       
       <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-3)' }}>
         {canManagePayroll && (

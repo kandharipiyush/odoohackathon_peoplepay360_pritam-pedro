@@ -165,17 +165,24 @@ const EmployeeProfile = () => {
           <Card title="Quick Access Hub">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--spacing-2)' }}>
               <Button variant="secondary" onClick={() => navigate('/attendance')} style={{ justifyContent: 'flex-start', padding: '12px' }}>
-                <CalendarCheck size={18} style={{ marginRight: '8px', color: 'var(--color-status-info)' }} /> My Attendance
+                <CalendarCheck size={18} style={{ marginRight: '8px', color: 'var(--color-status-info)' }} /> Attendance
               </Button>
               <Button variant="secondary" onClick={() => navigate('/timeoff')} style={{ justifyContent: 'flex-start', padding: '12px' }}>
-                <Clock size={18} style={{ marginRight: '8px', color: 'var(--color-status-warning)' }} /> My Time Off
+                <Clock size={18} style={{ marginRight: '8px', color: 'var(--color-status-warning)' }} /> Time Off
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/payroll')} style={{ justifyContent: 'flex-start', padding: '12px' }}>
-                <DollarSign size={18} style={{ marginRight: '8px', color: 'var(--color-status-success)' }} /> My Payslips
-              </Button>
+              {['Admin', 'HR Payroll Manager', 'HR Payroll User', 'Employee'].includes(currentUser?.role) && (
+                <Button variant="secondary" onClick={() => navigate('/payroll')} style={{ justifyContent: 'flex-start', padding: '12px' }}>
+                  <DollarSign size={18} style={{ marginRight: '8px', color: 'var(--color-status-success)' }} /> Payslips
+                </Button>
+              )}
               {['Admin', 'HR Manager', 'HR Payroll Manager'].includes(currentUser?.role) && (
                 <Button variant="secondary" onClick={() => navigate(`/contracts?employeeId=${effectiveId}`)} style={{ justifyContent: 'flex-start', padding: '12px' }}>
                   <FileText size={18} style={{ marginRight: '8px' }} /> Contract Details
+                </Button>
+              )}
+              {currentUser?.role === 'HR Manager' && (
+                <Button variant="secondary" onClick={() => navigate('/reports')} style={{ justifyContent: 'flex-start', padding: '12px' }}>
+                  <FileText size={18} style={{ marginRight: '8px', color: 'var(--color-status-warning)' }} /> HR Reports
                 </Button>
               )}
             </div>

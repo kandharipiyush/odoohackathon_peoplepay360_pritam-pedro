@@ -14,7 +14,7 @@ const RoleGuard = ({ children, allowedRoles }) => {
   }
 
   if (!allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;
