@@ -23,11 +23,27 @@ router.route('/:id')
   .delete(payrunController.deletePayrun);
 
 // Bulk computation endpoint
-router.post('/:id/compute', payrunController.computePayrun);
+router.all('/:id/compute', (req, res, next) => {
+  if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+    return payrunController.computePayrun(req, res, next);
+  }
+  next();
+});
 
 // Workflow state transition endpoints
-router.post('/:id/validate', payrunController.validatePayrun);
-router.post('/:id/pay', payrunController.markPayrunAsPaid);
+router.all('/:id/validate', (req, res, next) => {
+  if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+    return payrunController.validatePayrun(req, res, next);
+  }
+  next();
+});
+
+router.all('/:id/pay', (req, res, next) => {
+  if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+    return payrunController.markPayrunAsPaid(req, res, next);
+  }
+  next();
+});
 
 // Payslips list under a payrun
 router.get('/:id/payslips', payrunController.getPayslipsForPayrun);

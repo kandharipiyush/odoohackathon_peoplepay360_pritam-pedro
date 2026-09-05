@@ -44,8 +44,13 @@ const Employees = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
+  const normRole = (currentUser?.role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+  const isEmployee = normRole === 'employee';
+  const isAdmin = normRole === 'admin';
+  const canManageEmployees = ['admin', 'hrmanager', 'hrpayrollmanager'].includes(normRole);
+
   // For regular Employees, show their own profile directly instead of directory
-  if (currentUser?.role === 'Employee') {
+  if (isEmployee) {
     return <EmployeeProfile />;
   }
 
@@ -73,9 +78,6 @@ const Employees = () => {
     wage: 75000,
     allocatedDays: 20
   });
-
-  const canManageEmployees = ['Admin', 'HR Manager', 'HR Payroll Manager'].includes(currentUser?.role);
-  const isAdmin = currentUser?.role === 'Admin';
 
   useEffect(() => {
     loadAllData();

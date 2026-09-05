@@ -14,8 +14,9 @@ import PayrollRiskTable from '../components/intelligence/PayrollRiskTable';
 import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
 
 const Payroll = () => {
-  const { currentUser } = useAuth();
-  const canManagePayroll = ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
+  const normRole = (currentUser?.role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+  const canManagePayroll = ['admin', 'hrmanager', 'hrpayrollmanager', 'hrpayrolluser'].includes(normRole);
+  const isEmployee = normRole === 'employee';
   const [activeTab, setActiveTab] = useState(canManagePayroll ? 'payruns' : 'payslips'); // 'payruns', 'payslips', 'risk'
   
   // Payrun State
@@ -59,7 +60,7 @@ const Payroll = () => {
   const fetchPayslips = async () => {
     setLoadingPayslips(true);
     try {
-      const params = currentUser.role === 'Employee' ? { employeeId: currentUser.id } : {};
+      const params = isEmployee ? { employee_id: currentUser?.employee_id || currentUser?.id } : {};
       const res = await payrollApi.getPayslips(params);
       setPayslips(res.data);
     } catch (err) {

@@ -27,10 +27,15 @@ const Dashboard = () => {
   const [anomalies, setAnomalies] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const normRole = (currentUser?.role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+  const isPayrollAdmin = ['admin', 'hrpayrollmanager', 'hrpayrolluser', 'financeauditor'].includes(normRole);
+  const isHRManager = normRole === 'hrmanager';
+  const isEmployee = normRole === 'employee';
+
   const fetchData = async (selectedPeriod = period) => {
     setLoading(true);
     try {
-      if (['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role)) {
+      if (!isEmployee) {
         const [forecastRes, kpiRes, riskRes, impactRes, anomaliesRes] = await Promise.all([
           intelligenceApi.getPayrollForecast({ period: selectedPeriod }),
           intelligenceApi.getDashboardKPIs(selectedPeriod),
@@ -54,10 +59,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchData(period);
   }, [currentUser]);
-
-  const isPayrollAdmin = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
-  const isHRManager = currentUser?.role === 'HR Manager';
-  const isEmployee = currentUser?.role === 'Employee';
 
   // Dynamic status based on live payrun and request state
   const payStatus = kpiData?.latestPayrunStatus || kpiData?.payrollStatus?.value || 'Draft';

@@ -41,7 +41,7 @@ const PayslipDetails = () => {
       await payrollApi.downloadPayslipPdf(id);
       addToast('Official Payslip PDF downloaded.', 'success');
     } catch (err) {
-      alert('Failed to download PDF');
+      addToast(err.response?.data?.error || err.message || 'Failed to download PDF', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -53,7 +53,7 @@ const PayslipDetails = () => {
       await payrollApi.emailPayslip(id);
       addToast('Payslip emailed to employee successfully.', 'success');
     } catch (err) {
-      alert('Failed to send email');
+      addToast(err.response?.data?.error || err.message || 'Failed to send email', 'error');
     } finally {
       setActionLoading(false);
     }

@@ -109,7 +109,6 @@ const PayrunCreate = () => {
       console.error('Payrun create error:', err);
       const msg = err.response?.data?.error || err.message || 'Failed to create payrun';
       setError(msg);
-      alert(`Error creating payrun: ${msg}`);
       setSaving(false);
     }
   };

@@ -47,7 +47,7 @@ const TimeOffAllocations = () => {
         setFormData(prev => ({ ...prev, employeeId: empList[0].id }));
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error loading allocations:', err);
     } finally {
       setLoading(false);
     }
@@ -56,12 +56,12 @@ const TimeOffAllocations = () => {
   const handleCreateAllocation = async (e) => {
     e.preventDefault();
     if (!formData.employeeId || !formData.allocatedDays) {
-      alert('Please fill all required fields');
+      addToast('Please fill all required fields', 'warning');
       return;
     }
     setSaving(true);
     try {
-      const leaveTypeId = formData.leaveType.includes('Sick') ? 2 : (formData.leaveType.includes('Unpaid') ? 3 : 1);
+      const leaveTypeId = formData.leaveType.includes('Sick') ? 2 : (formData.leaveType.includes('Compensatory') ? 4 : 1);
       await timeOffApi.createAllocation({
         employeeId: formData.employeeId,
         leave_type_id: leaveTypeId,
@@ -74,7 +74,7 @@ const TimeOffAllocations = () => {
       fetchData();
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to create allocation';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -85,7 +85,7 @@ const TimeOffAllocations = () => {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--spacing-3)' }}>
-        <button onClick={() => navigate('/timeoff')} style={{ background: 'none', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <button onClick={() => navigate('/timeoff')} style={{ background: 'none', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
           <ArrowLeft size={16} /> Back to Time Off
         </button>
       </div>

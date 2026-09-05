@@ -21,8 +21,19 @@ router.route('/requests')
 
 router.get('/requests/:id', timeOffController.getRequestById);
 
-// Approvals & Refusals
-router.post('/requests/:id/approve', timeOffController.approveRequest);
-router.post('/requests/:id/refuse', timeOffController.refuseRequest);
+// Approvals & Refusals (support POST, PATCH, PUT for maximum client compatibility)
+router.all('/requests/:id/approve', (req, res, next) => {
+  if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+    return timeOffController.approveRequest(req, res, next);
+  }
+  next();
+});
+
+router.all('/requests/:id/refuse', (req, res, next) => {
+  if (['POST', 'PATCH', 'PUT'].includes(req.method)) {
+    return timeOffController.refuseRequest(req, res, next);
+  }
+  next();
+});
 
 module.exports = router;

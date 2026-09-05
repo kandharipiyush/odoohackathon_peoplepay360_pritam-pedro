@@ -7,9 +7,12 @@ import Loader from '../../components/common/Loader';
 import { AlertTriangle, CheckCircle, RefreshCcw, DollarSign, Users, AlertCircle, ArrowLeft, Check, CheckCheck, ShieldCheck } from 'lucide-react';
 import PayrunAuditReportModal from '../../components/intelligence/PayrunAuditReportModal';
 
+import { useToast } from '../../context/ToastContext';
+
 const PayrunDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [payrun, setPayrun] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +48,12 @@ const PayrunDetails = () => {
         setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
       }
       setActionSuccess('Payroll computed successfully.');
+      if (addToast) addToast('Payroll computed successfully.', 'success');
       setTimeout(() => setActionSuccess(''), 3000);
       await fetchDetails();
     } catch (err) {
-      alert(err.response?.data?.error || err.message || 'Failed to compute payrun');
+      const msg = err.response?.data?.error || err.message || 'Failed to compute payrun';
+      if (addToast) addToast(msg, 'error');
     } finally {
       setProcessing(false);
     }
@@ -62,10 +67,12 @@ const PayrunDetails = () => {
         setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
       }
       setActionSuccess('Payrun batch successfully validated.');
+      if (addToast) addToast('Payrun batch successfully validated.', 'success');
       setTimeout(() => setActionSuccess(''), 3000);
       await fetchDetails();
     } catch (err) {
-      alert(err.response?.data?.error || err.message || 'Failed to validate payrun');
+      const msg = err.response?.data?.error || err.message || 'Failed to validate payrun';
+      if (addToast) addToast(msg, 'error');
     } finally {
       setProcessing(false);
     }
@@ -80,10 +87,12 @@ const PayrunDetails = () => {
           setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
         }
         setActionSuccess('Payrun marked as Paid.');
+        if (addToast) addToast('Payrun marked as Paid.', 'success');
         setTimeout(() => setActionSuccess(''), 3000);
         await fetchDetails();
       } catch (err) {
-        alert(err.response?.data?.error || err.message || 'Failed to disburse payrun');
+        const msg = err.response?.data?.error || err.message || 'Failed to disburse payrun';
+        if (addToast) addToast(msg, 'error');
       } finally {
         setProcessing(false);
       }

@@ -71,7 +71,7 @@ const TimeOff = () => {
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
     if (!requestForm.startDate || !requestForm.endDate || !requestForm.duration) {
-      alert("Please fill all required fields");
+      addToast("Please fill all required fields", "warning");
       return;
     }
     setSaving(true);
@@ -90,7 +90,7 @@ const TimeOff = () => {
       fetchData();
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to submit request';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -104,7 +104,7 @@ const TimeOff = () => {
       fetchData();
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to approve request';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -129,7 +129,7 @@ const TimeOff = () => {
       fetchData();
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to deny request';
-      alert(msg);
+      addToast(msg, 'error');
     } finally {
       setDenying(false);
     }

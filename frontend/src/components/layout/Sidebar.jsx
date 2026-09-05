@@ -22,39 +22,50 @@ const Sidebar = () => {
       { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
     ];
 
-    switch (role) {
-      case 'Employee':
-        return [
-          ...baseItems,
-          { name: 'My Profile', path: '/profile', icon: <Users size={20} /> },
-          { name: 'My Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
-          { name: 'My Time Off', path: '/timeoff', icon: <Clock size={20} /> },
-          { name: 'My Payslips', path: '/payroll', icon: <DollarSign size={20} /> },
-        ];
-      case 'HR Manager':
-        return [
-          ...baseItems,
-          { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
-          { name: 'Contracts', path: '/contracts', icon: <FileText size={20} /> },
-          { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
-          { name: 'Time Off', path: '/timeoff', icon: <Clock size={20} /> },
-          { name: 'Reports', path: '/reports', icon: <BarChart2 size={20} /> },
-        ];
-      case 'HR Payroll User':
-      case 'HR Payroll Manager':
-      case 'Admin':
-        return [
-          ...baseItems,
-          { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
-          { name: 'Contracts', path: '/contracts', icon: <FileText size={20} /> },
-          { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
-          { name: 'Time Off', path: '/timeoff', icon: <Clock size={20} /> },
-          { name: 'Payroll', path: '/payroll', icon: <DollarSign size={20} /> },
-          { name: 'Reports', path: '/reports', icon: <BarChart2 size={20} /> },
-        ];
-      default:
-        return baseItems;
+    const normRole = (role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+
+    if (normRole === 'employee') {
+      return [
+        ...baseItems,
+        { name: 'My Profile', path: '/profile', icon: <Users size={20} /> },
+        { name: 'My Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
+        { name: 'My Time Off', path: '/timeoff', icon: <Clock size={20} /> },
+        { name: 'My Payslips', path: '/payroll', icon: <DollarSign size={20} /> },
+      ];
     }
+
+    if (normRole === 'hrmanager') {
+      return [
+        ...baseItems,
+        { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
+        { name: 'Contracts', path: '/contracts', icon: <FileText size={20} /> },
+        { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
+        { name: 'Time Off', path: '/timeoff', icon: <Clock size={20} /> },
+        { name: 'Reports', path: '/reports', icon: <BarChart2 size={20} /> },
+      ];
+    }
+
+    if (normRole === 'financeauditor') {
+      return [
+        ...baseItems,
+        { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
+        { name: 'Contracts', path: '/contracts', icon: <FileText size={20} /> },
+        { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
+        { name: 'Payroll', path: '/payroll', icon: <DollarSign size={20} /> },
+        { name: 'Reports', path: '/reports', icon: <BarChart2 size={20} /> },
+      ];
+    }
+
+    // Admin, HR Payroll Manager, HR Payroll User, and elevated management
+    return [
+      ...baseItems,
+      { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
+      { name: 'Contracts', path: '/contracts', icon: <FileText size={20} /> },
+      { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
+      { name: 'Time Off', path: '/timeoff', icon: <Clock size={20} /> },
+      { name: 'Payroll', path: '/payroll', icon: <DollarSign size={20} /> },
+      { name: 'Reports', path: '/reports', icon: <BarChart2 size={20} /> },
+    ];
   };
 
   const navItems = getNavItems(currentUser?.role);
