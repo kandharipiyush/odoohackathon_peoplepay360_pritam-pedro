@@ -166,6 +166,26 @@ class AttendanceService {
   }
 
   /**
+   * Get all pending attendance exceptions requiring manager review
+   */
+  async getAttendanceExceptions({ limit = 50, offset = 0 } = {}) {
+    const [rows] = await pool.query(
+      `SELECT 
+        a.id, a.employee_id, a.check_in, a.check_out, a.worked_hours, 
+        a.status, a.exception_flag, a.created_at,
+        CONCAT(e.first_name, ' ', e.last_name) AS employee_name,
+        e.department, e.job_position
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.exception_flag = 1 OR a.status IN ('Late', 'Half_Day', 'Absent')
+      ORDER BY a.check_in DESC 
+      LIMIT ? OFFSET ?`,
+      [parseInt(limit, 10), parseInt(offset, 10)]
+    );
+    return rows;
+  }
+
+  /**
    * Get single attendance record
    */
   async getAttendanceById(id) {
@@ -193,31 +213,47 @@ class AttendanceService {
   /**
    * Manual exception logging and manager correction endpoint
    */
-  async logManualException(id, { worked_hours, status, exception_flag, notes }) {
-    await this.getAttendanceById(id);
+  async logManualException(id, { worked_hours, status, exception_flag, notes, action, comment }) {
+    const existing = await this.getAttendanceById(id);
 
-    const fields = [];
-    const params = [];
+    let finalStatus = existing.status;
+    let finalExceptionFlag = existing.exception_flag;
+    let finalWorkedHours = existing.worked_hours;
 
     if (worked_hours !== undefined) {
-      fields.push('worked_hours = ?');
-      params.push(worked_hours);
+      finalWorkedHours = parseFloat(worked_hours) || 0;
     }
-    if (status !== undefined) {
-      fields.push('status = ?');
-      params.push(status);
+
+    const reviewAction = (action || status || '').toUpperCase();
+
+    if (reviewAction === 'RESOLVED' || reviewAction === 'APPROVE' || reviewAction === 'APPROVED') {
+      finalExceptionFlag = 0;
+      finalStatus = (finalWorkedHours && finalWorkedHours > 8.0) ? 'Overtime' : 'Present';
+    } else if (reviewAction === 'REJECT' || reviewAction === 'REJECTED') {
+      finalExceptionFlag = 0; // Exception closed
+      if (existing.status === 'Present') {
+        finalStatus = 'Absent';
+      } else {
+        finalStatus = existing.status; // Preserve 'Late', 'Half_Day', etc.
+      }
+    } else if (status) {
+      const validStatuses = ['Present', 'Late', 'Early_Departure', 'Overtime', 'Absent', 'Half_Day'];
+      const matched = validStatuses.find(s => s.toLowerCase() === status.toLowerCase());
+      if (matched) {
+        finalStatus = matched;
+      }
     }
+
     if (exception_flag !== undefined) {
-      fields.push('exception_flag = ?');
-      params.push(exception_flag ? 1 : 0);
+      finalExceptionFlag = (exception_flag === true || exception_flag === 1 || exception_flag === '1') ? 1 : 0;
     }
 
-    if (fields.length === 0) {
-      return this.getAttendanceById(id);
-    }
-
-    params.push(id);
-    await pool.query(`UPDATE attendance SET ${fields.join(', ')} WHERE id = ?`, params);
+    await pool.query(
+      `UPDATE attendance 
+       SET worked_hours = ?, status = ?, exception_flag = ? 
+       WHERE id = ?`,
+      [finalWorkedHours, finalStatus, finalExceptionFlag, id]
+    );
 
     return this.getAttendanceById(id);
   }

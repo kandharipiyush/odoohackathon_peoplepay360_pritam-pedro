@@ -2,22 +2,24 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
-const RoleGuard = ({ children, allowedRoles }) => {
+const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+
+const RoleGuard = ({ children, allowedRoles = [] }) => {
   const { currentUser } = useAuth();
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  if (currentUser.role === 'Admin') {
-    return children; // Admin bypasses all role checks
+  const userRole = currentUser.role || '';
+  const normalizedUser = normalizeRole(userRole);
+  const normalizedAllowed = allowedRoles.map(normalizeRole);
+
+  if (normalizedUser === 'admin' || normalizedAllowed.includes('*') || normalizedAllowed.includes(normalizedUser)) {
+    return children; // Admin or authorized role allowed
   }
 
-  if (!allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
+  return <Navigate to="/" replace />;
 };
 
 export default RoleGuard;

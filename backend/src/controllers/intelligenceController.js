@@ -79,13 +79,15 @@ class IntelligenceController {
   async getEmployeeAttendanceAdjustments(req, res, next) {
     try {
       const { employeeId } = req.params;
-      const { period_start, period_end } = req.query;
+      let { period_start, period_end } = req.query;
 
       if (!period_start || !period_end) {
-        return res.status(400).json({
-          success: false,
-          error: 'Query parameters "period_start" and "period_end" (YYYY-MM-DD) are required',
-        });
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        period_start = `${year}-${month}-01`;
+        period_end = `${year}-${month}-${lastDay}`;
       }
 
       const adjustments = await attendanceHookService.calculateAttendanceAdjustments(
@@ -94,6 +96,22 @@ class IntelligenceController {
         period_end
       );
 
+      return res.status(200).json({
+        success: true,
+        data: adjustments,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getCompanyAttendanceAdjustments(req, res, next) {
+    try {
+      let { period_start, period_end } = req.query;
+      const adjustments = await attendanceHookService.getCompanyAttendanceAdjustments({
+        period_start,
+        period_end,
+      });
       return res.status(200).json({
         success: true,
         data: adjustments,
@@ -187,6 +205,7 @@ controller.scanPayslipAnomalies = controller.scanPayslipAnomalies.bind(controlle
 controller.getAnomalyLogs = controller.getAnomalyLogs.bind(controller);
 controller.resolveAnomaly = controller.resolveAnomaly.bind(controller);
 controller.getEmployeeAttendanceAdjustments = controller.getEmployeeAttendanceAdjustments.bind(controller);
+controller.getCompanyAttendanceAdjustments = controller.getCompanyAttendanceAdjustments.bind(controller);
 controller.getPayrunAttendanceSummary = controller.getPayrunAttendanceSummary.bind(controller);
 controller.getBudgetForecast = controller.getBudgetForecast.bind(controller);
 controller.getDepartmentHistoricalTrends = controller.getDepartmentHistoricalTrends.bind(controller);

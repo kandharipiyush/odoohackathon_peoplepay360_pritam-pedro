@@ -60,7 +60,7 @@ const ContractForm = () => {
       }
       navigate('/contracts');
     } catch (err) {
-      setError('Failed to save contract.');
+      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to save contract.');
     } finally {
       setSaving(false);
     }

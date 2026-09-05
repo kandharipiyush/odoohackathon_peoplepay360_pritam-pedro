@@ -40,6 +40,12 @@ api.interceptors.response.use(
     const { response } = error;
 
     if (response) {
+      // Unpack descriptive error message from server response envelope
+      const serverMessage = response.data?.error || response.data?.message;
+      if (serverMessage && typeof serverMessage === 'string') {
+        error.message = serverMessage;
+      }
+
       // 401 Unauthorized: token expired or missing
       if (response.status === 401) {
         localStorage.removeItem('token');

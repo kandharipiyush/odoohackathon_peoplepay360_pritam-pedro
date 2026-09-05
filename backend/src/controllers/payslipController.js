@@ -120,10 +120,18 @@ class PayslipController {
       `;
       const params = [];
 
-      if (employee_id) {
+      const normUserRole = (req.user?.role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+      const isEmployeeRole = normUserRole === 'employee';
+
+      if (isEmployeeRole) {
+        const empId = req.user?.employee_id || req.user?.id;
+        sql += ' AND ps.employee_id = ?';
+        params.push(empId);
+      } else if (employee_id) {
         sql += ' AND ps.employee_id = ?';
         params.push(employee_id);
       }
+
       if (payrun_id) {
         sql += ' AND ps.payrun_id = ?';
         params.push(payrun_id);

@@ -67,6 +67,8 @@ const authenticateToken = (req, res, next) => {
  * Restricts access to one or more allowed user roles.
  * @param  {...string} allowedRoles - E.g. 'Admin', 'HR_Manager', 'HR_Payroll_Manager', 'Employee'
  */
+const normalizeRole = (r) => (r || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+
 const authorizeRole = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !req.user.role) {
@@ -77,9 +79,16 @@ const authorizeRole = (...allowedRoles) => {
     }
 
     const userRole = req.user.role;
+    const normalizedUser = normalizeRole(userRole);
+    const normalizedAllowed = allowedRoles.map(normalizeRole);
 
-    // Allow Admin super-role or explicit wildcard
-    if (userRole === 'Admin' || allowedRoles.includes('*') || allowedRoles.includes(userRole)) {
+    // Allow Admin super-role or explicit wildcard or normalized match
+    if (
+      normalizedUser === 'admin' ||
+      allowedRoles.includes('*') ||
+      normalizedAllowed.includes(normalizedUser) ||
+      allowedRoles.includes(userRole)
+    ) {
       return next();
     }
 

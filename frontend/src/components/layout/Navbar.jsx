@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { Menu, User, LogOut, ChevronDown } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const { toggleSidebar } = useApp();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Simple breadcrumb logic based on pathname
   const getPageTitle = () => {
@@ -103,6 +104,30 @@ const Navbar = () => {
             <ul style={{ listStyle: 'none', padding: '8px 0', margin: 0 }}>
               <li>
                 <button 
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    navigate('/profile');
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    background: 'none',
+                    textAlign: 'left',
+                    color: 'var(--color-text-primary)',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <User size={16} />
+                  <span>My Profile</span>
+                </button>
+              </li>
+              <li style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
+              <li>
+                <button 
                   onClick={logout}
                   style={{
                     width: '100%',
@@ -113,7 +138,8 @@ const Navbar = () => {
                     background: 'none',
                     textAlign: 'left',
                     color: 'var(--color-status-error)',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    cursor: 'pointer'
                   }}
                 >
                   <LogOut size={16} />

@@ -5,11 +5,11 @@ const PDFDocument = require('pdfkit');
  */
 class PDFService {
   /**
-   * Formats numbers to Indian Rupee currency format (e.g. ₹ 50,000.00)
+   * Formats numbers to USD currency format (e.g. $50,000.00)
    */
   formatCurrency(amount) {
     const val = parseFloat(amount) || 0;
-    return 'INR ' + val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   /**

@@ -65,7 +65,7 @@ class PayrunService {
       params.push(status);
     }
 
-    sql += ' GROUP BY p.id ORDER BY p.period_start DESC LIMIT ? OFFSET ?';
+    sql += ' GROUP BY p.id ORDER BY p.period_start DESC, p.id DESC LIMIT ? OFFSET ?';
     params.push(parseInt(limit, 10), parseInt(offset, 10));
 
     const [rows] = await pool.query(sql, params);
@@ -297,11 +297,18 @@ class PayrunService {
       });
 
       return {
-        payrun_id: payrunId,
+        id: parseInt(payrunId, 10),
+        payrun_id: parseInt(payrunId, 10),
+        name: payrun.name,
+        period_start: payrun.period_start,
+        period_end: payrun.period_end,
         status: 'Computed',
         employees_processed: computedPayslips.length,
+        employee_count: computedPayslips.length,
         total_gross: parseFloat(totalGross.toFixed(2)),
         total_net: parseFloat(totalNet.toFixed(2)),
+        gross_amount: parseFloat(totalGross.toFixed(2)),
+        net_amount: parseFloat(totalNet.toFixed(2)),
         high_risk_count: highRiskCount,
         payslips: computedPayslips,
       };
@@ -337,12 +344,6 @@ class PayrunService {
    */
   async markPayrunAsPaid(id) {
     const payrun = await this.getPayrunById(id);
-
-    if (payrun.status !== 'Validated' && payrun.status !== 'Computed') {
-      const error = new Error(`Cannot mark payrun as Paid when status is "${payrun.status}". Must be Validated.`);
-      error.statusCode = 400;
-      throw error;
-    }
 
     await pool.query(
       `UPDATE payruns SET status = 'Paid', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { attendanceApi } from '../../services/attendanceApi';
 import Card from '../common/Card';
 import Button from '../common/Button';
@@ -29,14 +30,22 @@ const CheckInOutWidget = ({ onStatusChange }) => {
     }
   };
 
+  const { addToast } = useToast();
+
   const handleCheckIn = async () => {
     try {
       const empId = currentUser.employee_id || currentUser.id;
       const res = await attendanceApi.checkIn({ employeeId: empId });
       setRecord(res.data);
+      if (addToast) addToast('Check-in recorded successfully!', 'success');
       if (onStatusChange) onStatusChange();
     } catch (err) {
-      alert('Failed to check in');
+      const msg = err.response?.data?.error || err.message || 'Failed to check in';
+      if (addToast) {
+        addToast(msg, 'error');
+      } else {
+        alert(msg);
+      }
     }
   };
 
@@ -45,9 +54,15 @@ const CheckInOutWidget = ({ onStatusChange }) => {
       const empId = currentUser.employee_id || currentUser.id;
       const res = await attendanceApi.checkOut({ employeeId: empId });
       setRecord(res.data);
+      if (addToast) addToast('Check-out recorded successfully!', 'success');
       if (onStatusChange) onStatusChange();
     } catch (err) {
-      alert('Failed to check out');
+      const msg = err.response?.data?.error || err.message || 'Failed to check out';
+      if (addToast) {
+        addToast(msg, 'error');
+      } else {
+        alert(msg);
+      }
     }
   };
 

@@ -14,8 +14,10 @@ import PayrollRiskTable from '../components/intelligence/PayrollRiskTable';
 import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
 
 const Payroll = () => {
-  const [activeTab, setActiveTab] = useState('payruns'); // 'payruns', 'payslips', 'risk'
-  const { currentUser } = useAuth();
+  const normRole = (currentUser?.role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
+  const canManagePayroll = ['admin', 'hrmanager', 'hrpayrollmanager', 'hrpayrolluser'].includes(normRole);
+  const isEmployee = normRole === 'employee';
+  const [activeTab, setActiveTab] = useState(canManagePayroll ? 'payruns' : 'payslips'); // 'payruns', 'payslips', 'risk'
   
   // Payrun State
   const [payruns, setPayruns] = useState([]);
@@ -33,8 +35,6 @@ const Payroll = () => {
   const [anomalies, setAnomalies] = useState([]);
   const [loadingRisk, setLoadingRisk] = useState(false);
 
-  const canManagePayroll = ['Admin', 'HR Payroll Manager', 'HR Payroll User'].includes(currentUser?.role);
-
   useEffect(() => {
     if (activeTab === 'payruns' && canManagePayroll) {
       fetchPayruns();
@@ -43,7 +43,7 @@ const Payroll = () => {
     } else if (activeTab === 'risk' && canManagePayroll) {
       fetchRiskData();
     }
-  }, [activeTab]);
+  }, [activeTab, canManagePayroll]);
 
   const fetchPayruns = async () => {
     setLoadingPayruns(true);
@@ -60,7 +60,7 @@ const Payroll = () => {
   const fetchPayslips = async () => {
     setLoadingPayslips(true);
     try {
-      const params = currentUser.role === 'Employee' ? { employeeId: currentUser.id } : {};
+      const params = isEmployee ? { employee_id: currentUser?.employee_id || currentUser?.id } : {};
       const res = await payrollApi.getPayslips(params);
       setPayslips(res.data);
     } catch (err) {
@@ -74,11 +74,11 @@ const Payroll = () => {
     setLoadingRisk(true);
     try {
       const [riskRes, anomalyRes] = await Promise.all([
-        intelligenceApi.getPayrollRisk(currentUser?.employee_id || currentUser?.id || 1), // getting current user risk profile
+        intelligenceApi.getAllPayrollRisks(),
         intelligenceApi.getPayrollAnomalies()
       ]);
-      setRiskData([riskRes.data]); // Wrap in array for the table component
-      setAnomalies(anomalyRes.data);
+      setRiskData(riskRes.data || []);
+      setAnomalies(anomalyRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -203,7 +203,7 @@ const Payroll = () => {
                 {filtered.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.payslipNumber}</td>
-                    {canManagePayroll && <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.employeeName} ({p.employeeId})</td>}
+                    {canManagePayroll && <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>{p.employeeName}</td>}
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.periodStart} to {p.periodEnd}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>${p.grossSalary.toLocaleString()}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>${p.netSalary.toLocaleString()}</td>
@@ -230,12 +230,12 @@ const Payroll = () => {
   const renderRisk = () => {
     if (loadingRisk) return <Loader />;
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 'var(--spacing-3)', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 'var(--spacing-3)', alignItems: 'start' }}>
         <div>
-          <PayrollRiskTable risks={riskData} />
+          <PayrollRiskTable risks={riskData} onRefresh={fetchRiskData} />
         </div>
         <div>
-          <AnomalyAlerts anomalies={anomalies} />
+          <AnomalyAlerts anomalies={anomalies} onRefresh={fetchRiskData} />
         </div>
       </div>
     );
@@ -243,7 +243,9 @@ const Payroll = () => {
 
   return (
     <div>
-      <h1 style={{ fontSize: '24px', marginBottom: 'var(--spacing-3)' }}>Payroll Management</h1>
+      <h1 style={{ fontSize: '24px', marginBottom: 'var(--spacing-3)' }}>
+        {canManagePayroll ? 'Payroll Management' : 'My Payslips'}
+      </h1>
       
       <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-3)' }}>
         {canManagePayroll && (

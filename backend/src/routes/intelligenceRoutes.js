@@ -17,6 +17,7 @@ router.patch('/anomalies/:id', intelligenceController.resolveAnomaly);
 // ==========================================
 // 2. Attendance & Leave-to-Payroll Hooks Routes
 // ==========================================
+router.get('/attendance-hooks/company', intelligenceController.getCompanyAttendanceAdjustments);
 router.get('/attendance-hooks/employee/:employeeId', intelligenceController.getEmployeeAttendanceAdjustments);
 router.get('/attendance-hooks/payrun/:payrunId', intelligenceController.getPayrunAttendanceSummary);
 

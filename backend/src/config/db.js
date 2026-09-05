@@ -28,6 +28,12 @@ const testConnection = async () => {
   try {
     connection = await pool.getConnection();
     const [result] = await connection.query('SELECT 1 + 1 AS health_check, NOW() as server_time');
+    try {
+      await connection.query("ALTER TABLE employees MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Active'");
+      await connection.query("ALTER TABLE time_off_requests MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Submitted'");
+    } catch {
+      // already altered or ignore
+    }
     logger.info('MySQL Database connected successfully to pool.', {
       host: process.env.DB_HOST || 'localhost',
       database: process.env.DB_NAME || 'peoplepay360_db',

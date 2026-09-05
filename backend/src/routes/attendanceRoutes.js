@@ -9,7 +9,8 @@ router.get('/', attendanceController.getAttendanceRecords);
 router.post('/check-in', attendanceController.checkIn);
 router.post('/check-out', attendanceController.checkOut);
 
-// GET single attendance record
+// GET single attendance record & exceptions
+router.get('/exceptions', attendanceController.getAttendanceExceptions);
 router.get('/:id', attendanceController.getAttendanceById);
 
 // PATCH / PUT manual exception resolution & manager adjustment

@@ -78,18 +78,23 @@ export const attendanceApi = {
   },
 
   getExceptions: async (params) => {
-    const res = await api.get('/attendance', { params: { ...params, exception_flag: true } });
-    if (Array.isArray(res.data)) {
-      res.data = res.data.map(mapAttendance);
-    } else {
-      res.data = [];
+    try {
+      const res = await api.get('/attendance/exceptions', { params });
+      const raw = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []);
+      res.data = raw.map(mapAttendance);
+      return res;
+    } catch {
+      const res = await api.get('/attendance', { params: { ...params, exception_flag: true } });
+      const raw = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []);
+      res.data = raw.map(mapAttendance);
+      return res;
     }
-    return res;
   },
 
   reviewException: async (id, data) => {
     const res = await api.patch(`/attendance/${id}/exception`, data);
-    if (res.data) res.data = mapAttendance(res.data);
+    const updated = res.data?.data || res.data;
+    if (updated) res.data = mapAttendance(updated);
     return res;
   }
 };

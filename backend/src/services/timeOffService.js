@@ -377,7 +377,7 @@ class TimeOffService {
 
     await pool.query(
       `UPDATE time_off_requests 
-       SET status = 'Rejected', reason = COALESCE(?, reason) 
+       SET status = 'Refused', reason = COALESCE(?, reason) 
        WHERE id = ?`,
       [reason, requestId]
     );

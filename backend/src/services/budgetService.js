@@ -150,7 +150,7 @@ class BudgetService {
 
       if (variancePct > thresholdPct) {
         riskLevel = 'Critical Overrun';
-        riskReason = `Severe budget overrun projected: Estimated payroll exceeds baseline budget by ₹${varianceAmount.toLocaleString('en-IN')} (+${variancePct}%). Review new contracts and overtime trends.`;
+        riskReason = `Severe budget overrun projected: Estimated payroll exceeds baseline budget by $${varianceAmount.toLocaleString('en-US')} (+${variancePct}%). Review new contracts and overtime trends.`;
         companyOverrunCount++;
       } else if (variancePct > 0) {
         riskLevel = 'Warning';

@@ -47,6 +47,16 @@ function App() {
       >
         <Route index element={<Dashboard />} />
 
+        {/* Profile Module */}
+        <Route
+          path="profile"
+          element={
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
+              <EmployeeProfile />
+            </RoleGuard>
+          }
+        />
+
         {/* Employees Module */}
         <Route
           path="employees"
@@ -157,7 +167,7 @@ function App() {
         <Route
           path="payroll"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <Payroll />
             </RoleGuard>
           }
@@ -165,7 +175,7 @@ function App() {
         <Route
           path="payroll/payruns/create"
           element={
-            <RoleGuard allowedRoles={['HR Payroll Manager', 'Admin']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
               <PayrunCreate />
             </RoleGuard>
           }
@@ -173,7 +183,7 @@ function App() {
         <Route
           path="payroll/payruns/:id"
           element={
-            <RoleGuard allowedRoles={['HR Payroll Manager', 'Finance Auditor', 'Admin']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <PayrunDetails />
             </RoleGuard>
           }
@@ -181,7 +191,7 @@ function App() {
         <Route
           path="payroll/payslips/:id"
           element={
-            <RoleGuard allowedRoles={['Employee', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Finance Auditor', 'Admin']}>
               <PayslipDetails />
             </RoleGuard>
           }

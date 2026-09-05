@@ -4,27 +4,33 @@ import { payrollApi } from '../../services/payrollApi';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
-import { AlertTriangle, CheckCircle, RefreshCcw, DollarSign, Users, AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCcw, DollarSign, Users, AlertCircle, ArrowLeft, Check, CheckCheck, ShieldCheck } from 'lucide-react';
+import PayrunAuditReportModal from '../../components/intelligence/PayrunAuditReportModal';
+
+import { useToast } from '../../context/ToastContext';
 
 const PayrunDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [payrun, setPayrun] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   const fetchDetails = async () => {
     setLoading(true);
     try {
       const [prRes, warnRes] = await Promise.all([
         payrollApi.getPayrun(id),
-        payrollApi.getPayrunWarnings(id)
+        payrollApi.getPayrunWarnings(id).catch(() => ({ data: [] }))
       ]);
       setPayrun(prRes.data);
-      setWarnings(warnRes.data);
+      setWarnings(warnRes.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading payrun:', err);
     } finally {
       setLoading(false);
     }
@@ -38,62 +44,141 @@ const PayrunDetails = () => {
     setProcessing(true);
     try {
       const res = await payrollApi.processPayrun(id);
-      setPayrun(res.data);
-      // Mock processing delay updates...
-      setTimeout(fetchDetails, 3500); 
+      if (res.data) {
+        setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
+      }
+      setActionSuccess('Payroll computed successfully.');
+      if (addToast) addToast('Payroll computed successfully.', 'success');
+      setTimeout(() => setActionSuccess(''), 3000);
+      await fetchDetails();
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.error || err.message || 'Failed to compute payrun';
+      if (addToast) addToast(msg, 'error');
     } finally {
       setProcessing(false);
     }
   };
 
+  const handleValidate = async () => {
+    setProcessing(true);
+    try {
+      const res = await payrollApi.validatePayrun(id);
+      if (res.data) {
+        setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
+      }
+      setActionSuccess('Payrun batch successfully validated.');
+      if (addToast) addToast('Payrun batch successfully validated.', 'success');
+      setTimeout(() => setActionSuccess(''), 3000);
+      await fetchDetails();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Failed to validate payrun';
+      if (addToast) addToast(msg, 'error');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    if (window.confirm('Mark this payrun as Paid and finalize all employee disbursements?')) {
+      setProcessing(true);
+      try {
+        const res = await payrollApi.markPayrunAsPaid(id);
+        if (res.data) {
+          setPayrun(prev => ({ ...(prev || {}), ...res.data, id: res.data.id || id }));
+        }
+        setActionSuccess('Payrun marked as Paid.');
+        if (addToast) addToast('Payrun marked as Paid.', 'success');
+        setTimeout(() => setActionSuccess(''), 3000);
+        await fetchDetails();
+      } catch (err) {
+        const msg = err.response?.data?.error || err.message || 'Failed to disburse payrun';
+        if (addToast) addToast(msg, 'error');
+      } finally {
+        setProcessing(false);
+      }
+    }
+  };
+
   if (loading && !payrun) return <Loader fullScreen />;
-  if (!payrun) return <div>Payrun not found</div>;
+  if (!payrun) return <div style={{ padding: '24px', textAlign: 'center' }}>Payrun not found</div>;
 
   const isProcessing = payrun.status === 'Processing' || processing;
-  const isCompleted = payrun.status === 'Completed' || payrun.status === 'Validated' || payrun.status === 'Paid';
+  const isComputed = payrun.status === 'Computed';
+  const isValidated = payrun.status === 'Validated';
+  const isPaid = payrun.status === 'Paid';
 
-  const getWarningColor = (severity) => {
-    if (severity === 'High') return 'var(--color-status-error)';
-    if (severity === 'Medium') return 'var(--color-status-warning)';
+  const getStatusColor = (status) => {
+    if (status === 'Paid') return '#16A34A';
+    if (status === 'Validated') return '#2563EB';
+    if (status === 'Computed') return '#7C3AED';
+    if (status === 'Draft') return '#CA8A04';
     return 'var(--color-text-secondary)';
   };
 
+  const displayId = (payrun.id ?? payrun.payrunId ?? id ?? 1).toString().padStart(4, '0');
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: 'var(--spacing-3)' }}>
-        <button onClick={() => navigate('/payroll')} style={{ background: 'none', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={16} /> Back to Payroll
-        </button>
-        <h1 style={{ fontSize: '24px', margin: 0 }}>Payrun: PR-{payrun.id.toString().padStart(4, '0')}</h1>
-        <span style={{ 
-          fontSize: '12px', padding: '4px 12px', borderRadius: '12px', fontWeight: 500,
-          backgroundColor: isCompleted ? 'var(--color-status-success)20' : (isProcessing ? 'var(--color-status-warning)20' : 'var(--color-border)'),
-          color: isCompleted ? 'var(--color-status-success)' : (isProcessing ? 'var(--color-status-warning)' : 'var(--color-text-primary)')
-        }}>
-          {payrun.status}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button onClick={() => navigate('/payroll')} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <ArrowLeft size={16} /> Back to Payroll
+          </button>
+          <h1 style={{ fontSize: '24px', margin: 0 }}>Payrun: PR-{displayId}</h1>
+          <span style={{ 
+            fontSize: '12px', padding: '4px 12px', borderRadius: '12px', fontWeight: 600,
+            backgroundColor: getStatusColor(payrun.status) + '18',
+            color: getStatusColor(payrun.status),
+            border: `1px solid ${getStatusColor(payrun.status)}40`
+          }}>
+            {payrun.status}
+          </span>
+        </div>
+
+        <Button
+          variant="secondary"
+          onClick={() => setShowAuditModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <ShieldCheck size={16} color="var(--color-brand)" />
+          Explainable Audit Report
+        </Button>
       </div>
 
+      {actionSuccess && (
+        <div style={{ 
+          backgroundColor: '#F0FDF4', border: '1px solid #86EFAC', color: '#16A34A', 
+          padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px',
+          display: 'flex', alignItems: 'center', gap: '8px'
+        }}>
+          <Check size={18} /> {actionSuccess}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-4)' }}>
-        <Card style={{ padding: 'var(--spacing-2)' }}>
+        <Card style={{ padding: 'var(--spacing-3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
             <Calendar size={16} /> <span style={{ fontSize: '12px' }}>Pay Period</span>
           </div>
-          <p style={{ fontSize: '16px', fontWeight: 500 }}>{payrun.periodStart} to {payrun.periodEnd}</p>
+          <p style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>{payrun.periodStart} to {payrun.periodEnd}</p>
         </Card>
-        <Card style={{ padding: 'var(--spacing-2)' }}>
+        <Card style={{ padding: 'var(--spacing-3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
-            <Users size={16} /> <span style={{ fontSize: '12px' }}>Employees</span>
+            <Users size={16} /> <span style={{ fontSize: '12px' }}>Employees Processed</span>
           </div>
-          <p style={{ fontSize: '24px', fontWeight: 600 }}>{payrun.employeeCount}</p>
+          <p style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: 'var(--color-brand)' }}>{payrun.employeeCount || payrun.total_payslips || 0}</p>
         </Card>
-        <Card style={{ padding: 'var(--spacing-2)' }}>
+        <Card style={{ padding: 'var(--spacing-3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
-            <DollarSign size={16} /> <span style={{ fontSize: '12px' }}>Total Net Pay</span>
+            <DollarSign size={16} /> <span style={{ fontSize: '12px' }}>Total Gross Wages</span>
           </div>
-          <p style={{ fontSize: '24px', fontWeight: 600 }}>${payrun.netTotal.toLocaleString()}</p>
+          <p style={{ fontSize: '22px', fontWeight: 600, margin: 0 }}>${(payrun.grossTotal || payrun.total_gross || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </Card>
+        <Card style={{ padding: 'var(--spacing-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
+            <DollarSign size={16} /> <span style={{ fontSize: '12px' }}>Total Net Disbursement</span>
+          </div>
+          <p style={{ fontSize: '22px', fontWeight: 700, margin: 0, color: '#16A34A' }}>${(payrun.netTotal || payrun.total_net || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </Card>
       </div>
 
@@ -117,7 +202,7 @@ const PayrunDetails = () => {
                   <td style={{ padding: '8px', fontWeight: 500 }}>{w.employeeId}</td>
                   <td style={{ padding: '8px' }}>{w.type}</td>
                   <td style={{ padding: '8px', color: 'var(--color-text-secondary)' }}>{w.description}</td>
-                  <td style={{ padding: '8px', textAlign: 'right', color: getWarningColor(w.severity), fontWeight: 500 }}>{w.severity}</td>
+                  <td style={{ padding: '8px', textAlign: 'right', color: 'var(--color-status-warning)', fontWeight: 500 }}>{w.severity}</td>
                 </tr>
               ))}
             </tbody>
@@ -125,43 +210,80 @@ const PayrunDetails = () => {
         </Card>
       )}
 
-      <Card title="Processing Actions">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Card title="Workflow & Disbursement Actions">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             {isProcessing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-status-warning)' }}>
                 <RefreshCcw size={20} className="spin" />
-                <span>Processing payroll calculations... This may take a moment.</span>
+                <span>Processing payroll engine... This may take a moment.</span>
               </div>
             )}
-            {isCompleted && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-status-success)' }}>
+            {isPaid && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#16A34A' }}>
+                <CheckCheck size={20} />
+                <span>Disbursement completed. All payslips finalized and marked as Paid.</span>
+              </div>
+            )}
+            {isValidated && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#2563EB' }}>
                 <CheckCircle size={20} />
-                <span>Processing complete. Payslips have been generated.</span>
+                <span>Payrun is validated and locked for audit. Ready for disbursement.</span>
+              </div>
+            )}
+            {isComputed && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#7C3AED' }}>
+                <CheckCircle size={20} />
+                <span>Payroll computed. Review payslips and validate to finalize.</span>
               </div>
             )}
             {payrun.status === 'Draft' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-text-secondary)' }}>
                 <AlertCircle size={20} />
-                <span>Ready for processing. Review warnings before proceeding.</span>
+                <span>Payrun is in Draft. Click below to run payroll calculation engine.</span>
               </div>
             )}
           </div>
           
-          <div>
+          <div style={{ display: 'flex', gap: '10px' }}>
             {payrun.status === 'Draft' && (
-              <Button variant="primary" onClick={handleProcess} disabled={isProcessing}>
-                {isProcessing ? 'Processing...' : 'Run Payroll Calculations'}
+              <Button variant="primary" onClick={handleProcess} disabled={isProcessing} style={{ backgroundColor: '#16A34A', borderColor: '#16A34A' }}>
+                {isProcessing ? 'Computing...' : 'Run Payroll Calculations'}
               </Button>
             )}
-            {isCompleted && (
-              <Button variant="primary" onClick={() => navigate(`/payroll?tab=payslips&payrunId=${id}`)}>
-                View Payslips
+
+            {isComputed && (
+              <>
+                <Button variant="secondary" onClick={handleProcess} disabled={isProcessing}>
+                  Recompute
+                </Button>
+                <Button variant="primary" onClick={handleValidate} disabled={isProcessing} style={{ backgroundColor: '#2563EB', borderColor: '#2563EB' }}>
+                  Validate & Audit Payrun
+                </Button>
+              </>
+            )}
+
+            {isValidated && (
+              <Button variant="primary" onClick={handleMarkPaid} disabled={isProcessing} style={{ backgroundColor: '#16A34A', borderColor: '#16A34A' }}>
+                Mark as Paid / Disburse
+              </Button>
+            )}
+
+            {(isComputed || isValidated || isPaid) && (
+              <Button variant="secondary" onClick={() => navigate(`/payroll?tab=payslips`)}>
+                View All Payslips
               </Button>
             )}
           </div>
         </div>
       </Card>
+
+      <PayrunAuditReportModal
+        isOpen={showAuditModal}
+        onClose={() => setShowAuditModal(false)}
+        payrunId={payrun.id || id}
+        payrunName={payrun.name || `PR-${displayId}`}
+      />
     </div>
   );
 };
