@@ -82,11 +82,21 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Route Imports
+const employeeRoutes = require('./routes/employeeRoutes');
+const contractRoutes = require('./routes/contractRoutes');
+const scheduleRoutes = require('./routes/scheduleRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const timeOffRoutes = require('./routes/timeOffRoutes');
+
 // ==========================================
-// 3. Application Routes (Mount Points for Phase 1+)
+// 3. Application Routes (Phase 2)
 // ==========================================
-// Phase routes (employees, contracts, attendance, payruns, payslips) will be mounted here
-// Example: app.use('/api/v1/employees', employeeRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/schedules', scheduleRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/time-off', timeOffRoutes);
 
 // ==========================================
 // 4. Global Error Handling Middlewares
