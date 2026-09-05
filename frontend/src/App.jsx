@@ -8,13 +8,23 @@ import RoleGuard from './components/common/RoleGuard';
 
 // Views
 import Login from './views/Login';
+import Register from './views/Register';
+import ForgotPassword from './views/ForgotPassword';
 import Dashboard from './views/Dashboard';
 import Employees from './views/Employees';
+import EmployeeProfile from './views/EmployeeProfile';
+import EmployeeForm from './views/EmployeeForm';
 import Contracts from './views/Contracts';
+import ContractForm from './views/ContractForm';
 import Attendance from './views/Attendance';
 import TimeOff from './views/TimeOff';
+import TimeOffAllocations from './views/TimeOffAllocations';
 import Payroll from './views/Payroll';
+import PayrunCreate from './views/payroll/PayrunCreate';
+import PayrunDetails from './views/payroll/PayrunDetails';
+import PayslipDetails from './views/payroll/PayslipDetails';
 import Reports from './views/Reports';
+import PayrollAnalytics from './views/PayrollAnalytics';
 import Unauthorized from './views/Unauthorized';
 
 function App() {
@@ -22,6 +32,8 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}
@@ -35,6 +47,7 @@ function App() {
       >
         <Route index element={<Dashboard />} />
         
+        {/* Employees Module */}
         <Route 
           path="employees" 
           element={
@@ -43,7 +56,32 @@ function App() {
             </RoleGuard>
           } 
         />
+        <Route 
+          path="employees/new" 
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
+              <EmployeeForm />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="employees/:id" 
+          element={
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+              <EmployeeProfile />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="employees/:id/edit" 
+          element={
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll Manager', 'Admin']}>
+              <EmployeeForm />
+            </RoleGuard>
+          } 
+        />
         
+        {/* Contracts Module */}
         <Route 
           path="contracts" 
           element={
@@ -52,7 +90,24 @@ function App() {
             </RoleGuard>
           } 
         />
+        <Route 
+          path="contracts/new" 
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
+              <ContractForm />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="contracts/:id/edit" 
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
+              <ContractForm />
+            </RoleGuard>
+          } 
+        />
         
+        {/* Attendance Module */}
         <Route 
           path="attendance" 
           element={
@@ -62,6 +117,7 @@ function App() {
           } 
         />
         
+        {/* Time Off Module */}
         <Route 
           path="timeoff" 
           element={
@@ -70,7 +126,24 @@ function App() {
             </RoleGuard>
           } 
         />
+        <Route 
+          path="time-off" 
+          element={
+            <RoleGuard allowedRoles={['Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+              <TimeOff />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="time-off/allocations" 
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll Manager', 'Admin']}>
+              <TimeOffAllocations />
+            </RoleGuard>
+          } 
+        />
         
+        {/* Payroll Module */}
         <Route 
           path="payroll" 
           element={
@@ -79,12 +152,44 @@ function App() {
             </RoleGuard>
           } 
         />
+        <Route 
+          path="payroll/payruns/create" 
+          element={
+            <RoleGuard allowedRoles={['HR Payroll Manager', 'Admin']}>
+              <PayrunCreate />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="payroll/payruns/:id" 
+          element={
+            <RoleGuard allowedRoles={['HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+              <PayrunDetails />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="payroll/payslips/:id" 
+          element={
+            <RoleGuard allowedRoles={['Employee', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+              <PayslipDetails />
+            </RoleGuard>
+          } 
+        />
         
         <Route 
           path="reports" 
           element={
-            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
               <Reports />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="reports/payroll" 
+          element={
+            <RoleGuard allowedRoles={['HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin']}>
+              <PayrollAnalytics />
             </RoleGuard>
           } 
         />

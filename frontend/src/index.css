@@ -25,6 +25,7 @@
   --color-status-success: #16A34A; /* Green */
   --color-status-warning: #D97706; /* Amber */
   --color-status-error: #DC2626;   /* Red */
+  --color-status-info: #2563EB;    /* Blue */
 
   /* Shadows - Minimal */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -100,16 +101,22 @@ button {
 input, select, textarea {
   font-family: inherit;
   width: 100%;
-  padding: var(--spacing-1) 12px;
+  padding: 10px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
   font-size: 14px;
+  background-color: var(--color-bg-card);
 }
 
 input:focus, select:focus, textarea:focus {
   border-color: var(--color-btn-primary);
+  box-shadow: 0 0 0 3px rgba(38, 38, 38, 0.1);
+}
+
+input::placeholder, textarea::placeholder {
+  color: #A3A3A3;
 }
 
 label {
@@ -122,4 +129,103 @@ label {
 
 .input-group {
   margin-bottom: var(--spacing-2);
+}
+
+/* Button Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--color-btn-primary);
+  color: var(--color-btn-primary-text);
+  border-color: var(--color-btn-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-btn-primary-hover);
+  border-color: var(--color-btn-primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--color-btn-secondary);
+  color: var(--color-btn-secondary-text);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-btn-secondary-hover);
+  border-color: var(--color-border-dark);
+}
+
+.btn-danger {
+  background-color: var(--color-status-error);
+  color: #FFFFFF;
+  border-color: var(--color-status-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #B91C1C; /* Darker red */
+  border-color: #B91C1C;
+}
+
+/* Toast Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .content-area {
+    padding: var(--spacing-2);
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .content-area {
+    padding: var(--spacing-2);
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-area {
+    padding: var(--spacing-1);
+  }
+
+  h1 {
+    font-size: 22px !important;
+  }
 }

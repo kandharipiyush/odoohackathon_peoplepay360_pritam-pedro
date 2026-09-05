@@ -30,8 +30,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await authApi.login(email, password);
-      const { token, user } = response;
+      const response = await authApi.login({ email, password });
+      const { token, user } = response.data;
       
       setToken(token);
       setCurrentUser(user);
