@@ -43,7 +43,33 @@ CREATE TABLE IF NOT EXISTS `employees` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
+-- 1b. Table: users
+-- Authentication credentials and role assignment.
+-- Linked to employees for profile resolution.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `employee_id` INT UNSIGNED NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `role` ENUM('Admin', 'HR_Manager', 'HR_Payroll_Manager', 'Finance_Auditor', 'Employee') NOT NULL DEFAULT 'Employee',
+    `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_users_email` (`email`),
+    INDEX `idx_users_role` (`role`),
+    INDEX `idx_users_employee_id` (`employee_id`),
+    CONSTRAINT `fk_users_employee`
+        FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
 -- 2. Table: working_schedules
+
 -- Configurable shifts and work-hour profiles for attendance tracking.
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `working_schedules` (

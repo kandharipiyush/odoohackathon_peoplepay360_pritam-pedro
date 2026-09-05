@@ -1,136 +1,73 @@
 import api from './api';
 
-// MOCK DATA
-let mockPayruns = [
-  {
-    id: 1,
-    periodStart: '2023-11-01',
-    periodEnd: '2023-11-30',
-    paymentDate: '2023-12-05',
-    employeeCount: 45,
-    grossTotal: 250000,
-    deductionsTotal: 55000,
-    netTotal: 195000,
-    status: 'Completed',
-    createdDate: '2023-12-01',
-    warnings: []
-  },
-  {
-    id: 2,
-    periodStart: '2023-12-01',
-    periodEnd: '2023-12-31',
-    paymentDate: '2024-01-05',
-    employeeCount: 46,
-    grossTotal: 260000,
-    deductionsTotal: 58000,
-    netTotal: 202000,
-    status: 'Draft',
-    createdDate: '2024-01-02',
-    warnings: [
-      { id: 1, employeeId: 'EMP042', type: 'Missing Attendance', description: 'No attendance records for Dec 15-20', severity: 'High' }
-    ]
-  }
-];
-
-let mockPayslips = [
-  {
-    id: 1,
-    payrunId: 1,
-    employeeId: 'EMP001',
-    employeeName: 'Sarah Connor',
-    department: 'Management',
-    payslipNumber: 'PS-2023-11-001',
-    periodStart: '2023-11-01',
-    periodEnd: '2023-11-30',
-    earnings: [
-      { name: 'Basic Salary', amount: 15000 },
-      { name: 'Allowances', amount: 2000 }
-    ],
-    deductions: [
-      { name: 'Tax', amount: 3400 },
-      { name: 'Insurance', amount: 600 }
-    ],
-    grossSalary: 17000,
-    totalDeductions: 4000,
-    netSalary: 13000,
-    status: 'Validated',
-    paymentStatus: 'Paid',
-    risk: 'Low'
-  }
-];
-
 export const payrollApi = {
-  getPayruns: async () => {
-    return new Promise(resolve => setTimeout(() => resolve({ data: mockPayruns }), 500));
+  getPayruns: async (params) => {
+    return api.get('/payruns', { params });
   },
-  
+
   getPayrun: async (id) => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({ data: mockPayruns.find(p => p.id === parseInt(id)) });
-    }, 400));
+    return api.get(`/payruns/${id}`);
   },
-  
+
   createPayrun: async (data) => {
-    return new Promise(resolve => setTimeout(() => {
-      const newPayrun = {
-        id: mockPayruns.length + 1,
-        ...data,
-        employeeCount: data.employeeIds?.length || 0,
-        grossTotal: 0,
-        deductionsTotal: 0,
-        netTotal: 0,
-        status: 'Draft',
-        createdDate: new Date().toISOString().split('T')[0],
-        warnings: []
-      };
-      mockPayruns.push(newPayrun);
-      resolve({ data: newPayrun });
-    }, 1000));
+    return api.post('/payruns', data);
   },
-  
+
   processPayrun: async (id) => {
-    return new Promise(resolve => setTimeout(() => {
-      const pr = mockPayruns.find(p => p.id === parseInt(id));
-      if (pr) {
-        pr.status = 'Processing';
-        // Simulate processing finishing later
-        setTimeout(() => { pr.status = 'Completed'; }, 3000);
-      }
-      resolve({ data: pr });
-    }, 800));
+    return api.post(`/payruns/${id}/compute`);
   },
-  
+
+  validatePayrun: async (id) => {
+    return api.post(`/payruns/${id}/validate`);
+  },
+
+  markPayrunAsPaid: async (id) => {
+    return api.post(`/payruns/${id}/pay`);
+  },
+
   getPayrunWarnings: async (id) => {
-    return new Promise(resolve => setTimeout(() => {
-      const pr = mockPayruns.find(p => p.id === parseInt(id));
-      resolve({ data: pr?.warnings || [] });
-    }, 400));
+    // Warnings are embedded in the payrun response; fetch payrun details
+    return api.get(`/payruns/${id}`);
   },
-  
+
   getPayslips: async (params) => {
-    return new Promise(resolve => setTimeout(() => {
-      let result = mockPayslips;
-      if (params?.payrunId) result = result.filter(ps => ps.payrunId === parseInt(params.payrunId));
-      if (params?.employeeId) result = result.filter(ps => ps.employeeId === params.employeeId);
-      resolve({ data: result });
-    }, 500));
+    if (params?.payrunId) {
+      return api.get(`/payruns/${params.payrunId}/payslips`, { params });
+    }
+    return api.get('/payslips', { params });
   },
-  
+
   getPayslip: async (id) => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({ data: mockPayslips.find(ps => ps.id === parseInt(id)) });
-    }, 400));
+    return api.get(`/payruns/payslips/${id}`);
   },
-  
+
   downloadPayslipPdf: async (id) => {
-    return new Promise(resolve => setTimeout(() => resolve({ success: true }), 800));
+    const token = localStorage.getItem('token');
+    const response = await api.get(`/payslips/${id}/pdf`, {
+      responseType: 'blob',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `payslip_${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    return { success: true };
   },
-  
+
   emailPayslip: async (id) => {
-    return new Promise(resolve => setTimeout(() => resolve({ success: true }), 800));
+    // Not implemented on backend yet — placeholder
+    return { data: { success: true, message: 'Email feature coming soon' } };
   },
-  
+
   bulkEmailPayslips: async (ids) => {
-    return new Promise(resolve => setTimeout(() => resolve({ success: true, count: ids.length }), 1200));
+    // Not implemented on backend yet — placeholder
+    return { data: { success: true, count: ids.length, message: 'Bulk email feature coming soon' } };
   }
 };

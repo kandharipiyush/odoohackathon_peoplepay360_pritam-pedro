@@ -1,132 +1,104 @@
 import api from './api';
 
-// MOCK DATA
-const mockRisks = {
-  '101': {
-    employeeId: 101,
-    riskScore: 87,
-    riskLevel: 'HIGH',
-    anomalies: [
-      { id: 1, type: 'Salary Increase', description: 'Salary increased by 30%', severity: 'HIGH', date: '2024-01-15', status: 'Pending' },
-      { id: 2, type: 'Bonus Spike', description: 'Bonus increased by 80%', severity: 'HIGH', date: '2024-01-15', status: 'Pending' }
-    ]
-  },
-  '102': {
-    employeeId: 102,
-    riskScore: 12,
-    riskLevel: 'LOW',
-    anomalies: []
-  }
-};
-
-const mockImpacts = {
-  '101': {
-    employeeId: 101,
-    expectedDays: 22,
-    attendanceDays: 20,
-    approvedLeaveDays: 0,
-    unresolvedDays: 2,
-    overtimeHours: 4,
-    estimatedPayrollImpact: 4545,
-    status: 'Needs Review',
-    mismatches: [
-      { id: 1, type: 'Missing Attendance', description: 'Missing check-in on Jan 14' },
-      { id: 2, type: 'Unresolved Working Days', description: '2 days without attendance or leave' }
-    ]
-  }
-};
-
-const mockForecast = {
-  currentPayroll: 4250000,
-  forecast: 4580000,
-  budget: 4400000,
-  overrun: 180000,
-  status: 'Over Budget',
-  historical: [3800000, 3950000, 4100000, 4250000], // past 4 months
-  reasons: [
-    { type: 'New Hires', impact: '+₹2.5L', description: 'Onboarded 4 new engineers' },
-    { type: 'Salary Increments', impact: '+₹1.1L', description: 'Annual review adjustments' },
-    { type: 'Increased Overtime', impact: '+₹0.2L', description: 'Higher overtime in logistics' }
-  ]
-};
-
-const mockAudit = {
-  '1': {
-    payslipId: 1,
-    riskScore: 87,
-    riskLevel: 'HIGH',
-    triggers: [
-      'Salary increased by 30%',
-      'Bonus increased by 80%',
-      'Overtime increased by 45%'
-    ],
-    affectedComponents: ['Basic Salary', 'Bonus', 'Overtime'],
-    recommendedAction: 'Review bonus and overtime before validating this payslip.',
-    status: 'Flagged'
-  }
-};
-
 export const intelligenceApi = {
+  // AI Anomaly & Fraud Detection
   getPayrollRisk: async (employeeId) => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({ data: mockRisks[employeeId] || mockRisks['102'] });
-    }, 600));
-  },
-  
-  getPayrollAnomalies: async (params) => {
-    return new Promise(resolve => setTimeout(() => {
-      // Return all anomalies across all mock risks
-      const allAnomalies = Object.values(mockRisks).flatMap(r => r.anomalies.map(a => ({...a, employeeId: r.employeeId})));
-      resolve({ data: allAnomalies });
-    }, 700));
-  },
-  
-  getAttendancePayrollImpact: async (employeeId) => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({ data: mockImpacts[employeeId] || mockImpacts['101'] }); // default to 101 for demo
-    }, 500));
-  },
-  
-  getPayrollForecast: async (params) => {
-    return new Promise(resolve => setTimeout(() => resolve({ data: mockForecast }), 800));
-  },
-  
-  getPayslipAudit: async (payslipId) => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({ data: mockAudit[payslipId] || mockAudit['1'] });
-    }, 600));
+    return api.get(`/intelligence/anomalies`, { params: { employee_id: employeeId } });
   },
 
+  getPayrollAnomalies: async (params) => {
+    return api.get('/intelligence/anomalies', { params });
+  },
+
+  scanPayrunAnomalies: async (payrunId) => {
+    return api.post(`/intelligence/anomalies/scan/${payrunId}`);
+  },
+
+  // Attendance & Leave-to-Payroll Hooks
+  getAttendancePayrollImpact: async (employeeId) => {
+    return api.get(`/intelligence/attendance-hooks/employee/${employeeId}`);
+  },
+
+  // Budget & Cost Prediction
+  getPayrollForecast: async (params) => {
+    return api.get('/intelligence/budget/forecast', { params });
+  },
+
+  getDepartmentTrends: async (department) => {
+    return api.get(`/intelligence/budget/department/${department}`);
+  },
+
+  // Explainable Payroll Auditor
+  getPayslipAudit: async (payslipId) => {
+    return api.get(`/intelligence/audit/payslip/${payslipId}`);
+  },
+
+  getPayrunAuditReport: async (payrunId) => {
+    return api.get(`/intelligence/audit/payrun/${payrunId}`);
+  },
+
+  // Dashboard KPIs — aggregate from real endpoints
   getDashboardKPIs: async () => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({
+    try {
+      const [empRes, payrunRes, attendanceRes] = await Promise.allSettled([
+        api.get('/employees', { params: { limit: 1 } }),
+        api.get('/payruns', { params: { limit: 1 } }),
+        api.get('/attendance', { params: { limit: 1 } }),
+      ]);
+
+      const empCount = empRes.status === 'fulfilled' ? (empRes.value.data?.count || 0) : 0;
+
+      return {
         data: {
-          totalEmployees: { value: 142, change: '+3%' },
-          activeEmployees: { value: 138, change: '+2%' },
-          totalNetSalary: { value: '₹42,50,000', change: '+1.5%' },
-          attendanceHealth: { value: '98%', status: 'Healthy' },
-          pendingTimeOff: { value: 12, status: 'Attention' },
-          payrollStatus: { value: 'Processing', status: 'Pending' }
-        }
-      });
-    }, 500));
+          totalEmployees: { value: empCount, change: '+0%' },
+          activeEmployees: { value: empCount, change: '+0%' },
+          totalNetSalary: { value: '—', change: '—' },
+          attendanceHealth: { value: '—', status: 'Loading' },
+          pendingTimeOff: { value: 0, status: 'OK' },
+          payrollStatus: { value: 'Ready', status: 'OK' },
+        },
+      };
+    } catch {
+      return {
+        data: {
+          totalEmployees: { value: 0, change: '—' },
+          activeEmployees: { value: 0, change: '—' },
+          totalNetSalary: { value: '—', change: '—' },
+          attendanceHealth: { value: '—', status: 'Error' },
+          pendingTimeOff: { value: 0, status: 'Error' },
+          payrollStatus: { value: '—', status: 'Error' },
+        },
+      };
+    }
   },
 
   getRiskOverview: async () => {
-    return new Promise(resolve => setTimeout(() => {
-      resolve({
+    try {
+      const response = await api.get('/intelligence/anomalies');
+      const anomalies = response.data?.data || [];
+      const highCount = anomalies.filter(a => a.risk_score >= 70).length;
+      const medCount = anomalies.filter(a => a.risk_score >= 40 && a.risk_score < 70).length;
+      const lowCount = anomalies.filter(a => a.risk_score < 40).length;
+
+      return {
         data: {
-          overallRisk: 'Medium',
-          score: 45,
-          counts: {
-            low: 120,
-            medium: 15,
-            high: 5,
-            critical: 2
-          },
-          highRiskEmployees: 7
-        }
-      });
-    }, 600));
-  }
+          overallRisk: highCount > 0 ? 'High' : medCount > 0 ? 'Medium' : 'Low',
+          score: anomalies.length > 0
+            ? Math.round(anomalies.reduce((sum, a) => sum + (a.risk_score || 0), 0) / anomalies.length)
+            : 0,
+          counts: { low: lowCount, medium: medCount, high: highCount, critical: 0 },
+          highRiskEmployees: highCount,
+        },
+      };
+    } catch {
+      return {
+        data: {
+          overallRisk: 'Unknown',
+          score: 0,
+          counts: { low: 0, medium: 0, high: 0, critical: 0 },
+          highRiskEmployees: 0,
+        },
+      };
+    }
+  },
 };

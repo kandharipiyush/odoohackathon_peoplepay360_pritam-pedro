@@ -1,16 +1,19 @@
 import axios from 'axios';
 
-// The base URL should be configured via environment variable
+// Base URL configured via Vite env or defaulting to local Express backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
+  withCredentials: true,
 });
 
-// Interceptor to add JWT token to requests
+// Request interceptor to attach JWT token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -24,20 +27,26 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor to handle global API errors (e.g., 401 Unauthorized)
+// Response interceptor to handle errors and standard responses
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear token and potentially redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // For a clean redirect, it's better handled at the context/router level, 
-      // but this acts as a failsafe
-      window.dispatchEvent(new Event('unauthorized'));
+    const { response } = error;
+
+    if (response) {
+      // 401 Unauthorized: token expired or missing
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.dispatchEvent(new Event('unauthorized'));
+      }
     }
+
     return Promise.reject(error);
   }
 );
 
 export default api;
+export { API_BASE_URL };
