@@ -14,6 +14,7 @@ import PayrollRiskTable from '../components/intelligence/PayrollRiskTable';
 import AnomalyAlerts from '../components/intelligence/AnomalyAlerts';
 
 const Payroll = () => {
+  const { currentUser } = useAuth();
   const normRole = (currentUser?.role || '').toString().toLowerCase().replace(/[\s_]+/g, '');
   const canManagePayroll = ['admin', 'hrmanager', 'hrpayrollmanager', 'hrpayrolluser'].includes(normRole);
   const isEmployee = normRole === 'employee';
@@ -106,7 +107,16 @@ const Payroll = () => {
   const renderPayruns = () => {
     if (loadingPayruns) return <Loader />;
     
-    const filtered = payruns.filter(p => p.periodStart.includes(payrunSearch) || p.status.toLowerCase().includes(payrunSearch.toLowerCase()));
+    const term = (payrunSearch || '').toLowerCase().trim();
+    const filtered = (payruns || []).filter(p => {
+      if (!term) return true;
+      const start = (p.periodStart || p.period_start || '').toLowerCase();
+      const end = (p.periodEnd || p.period_end || '').toLowerCase();
+      const status = (p.status || '').toLowerCase();
+      const name = (p.name || '').toLowerCase();
+      const idStr = String(p.id || '');
+      return start.includes(term) || end.includes(term) || status.includes(term) || name.includes(term) || idStr.includes(term);
+    });
 
     return (
       <div>
@@ -139,25 +149,32 @@ const Payroll = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(p => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>PR-{p.id.toString().padStart(4, '0')}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.periodStart} to {p.periodEnd}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.employeeCount}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>${p.grossTotal.toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>${p.netTotal.toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '12px', backgroundColor: getStatusColor(p.status) + '20', color: getStatusColor(p.status) }}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <Button variant="secondary" onClick={() => navigate(`/payroll/payruns/${p.id}`)} style={{ padding: '4px 8px' }}>
-                        <Eye size={16} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(p => {
+                  const gross = parseFloat(p.grossTotal ?? p.total_gross ?? 0);
+                  const net = parseFloat(p.netTotal ?? p.total_net ?? 0);
+                  const start = p.periodStart || p.period_start || '2026-09-01';
+                  const end = p.periodEnd || p.period_end || '2026-09-30';
+                  const empCount = p.employeeCount ?? p.total_payslips ?? 0;
+                  return (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>PR-{String(p.id || 1).padStart(4, '0')}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>{start} to {end}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>{empCount}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>${gross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '12px', backgroundColor: getStatusColor(p.status) + '20', color: getStatusColor(p.status) }}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <Button variant="secondary" onClick={() => navigate(`/payroll/payruns/${p.id}`)} style={{ padding: '4px 8px' }}>
+                          <Eye size={16} />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </Card>
@@ -169,7 +186,13 @@ const Payroll = () => {
   const renderPayslips = () => {
     if (loadingPayslips) return <Loader />;
     
-    const filtered = payslips.filter(p => p.employeeName?.toLowerCase().includes(payslipSearch.toLowerCase()) || p.payslipNumber.includes(payslipSearch));
+    const term = (payslipSearch || '').toLowerCase().trim();
+    const filtered = (payslips || []).filter(p => {
+      if (!term) return true;
+      const empName = (p.employeeName || p.employee_name || '').toLowerCase();
+      const num = (p.payslipNumber || `PS-${p.id}` || '').toLowerCase();
+      return empName.includes(term) || num.includes(term);
+    });
 
     return (
       <div>
@@ -200,25 +223,34 @@ const Payroll = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(p => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.payslipNumber}</td>
-                    {canManagePayroll && <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>{p.employeeName}</td>}
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.periodStart} to {p.periodEnd}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>${p.grossSalary.toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>${p.netSalary.toLocaleString()}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '12px', backgroundColor: getStatusColor(p.paymentStatus) + '20', color: getStatusColor(p.paymentStatus) }}>
-                        {p.paymentStatus}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <Button variant="secondary" onClick={() => navigate(`/payroll/payslips/${p.id}`)} style={{ padding: '4px 8px' }}>
-                        <Eye size={16} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(p => {
+                  const gross = parseFloat(p.grossSalary ?? p.gross_amount ?? 0);
+                  const net = parseFloat(p.netSalary ?? p.net_amount ?? 0);
+                  const start = p.periodStart || p.period_start || '2026-09-01';
+                  const end = p.periodEnd || p.period_end || '2026-09-30';
+                  const status = p.paymentStatus || p.status || 'Draft';
+                  const pNum = p.payslipNumber || `PS-${String(p.id).padStart(5, '0')}`;
+                  const empName = p.employeeName || p.employee_name || 'Employee';
+                  return (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>{pNum}</td>
+                      {canManagePayroll && <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 500 }}>{empName}</td>}
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>{start} to {end}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px' }}>${gross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '12px', backgroundColor: getStatusColor(status) + '20', color: getStatusColor(status) }}>
+                          {status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <Button variant="secondary" onClick={() => navigate(`/payroll/payslips/${p.id}`)} style={{ padding: '4px 8px' }}>
+                          <Eye size={16} />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </Card>
